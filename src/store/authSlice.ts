@@ -1,5 +1,6 @@
 import { createSlice, type PayloadAction } from '@reduxjs/toolkit'
 import type { Identity } from '@/types/grower'
+import { generateToken } from '@/utils/jwt'
 
 interface AuthState {
   isLoggedIn: boolean
@@ -33,6 +34,15 @@ export function checkCredentials(username: string, password: string): Identity |
     return null
   }
   return record.identity
+}
+
+/**
+ * 登录校验：成功返回 Token（含用户信息），失败返回 null
+ */
+export function loginWithToken(username: string, password: string): string | null {
+  const record = userDatabase.get(username)
+  if (!record || record.password !== password) return null
+  return generateToken(username, record.identity)
 }
 
 /**

@@ -4,7 +4,9 @@ import { Form, Input, InputNumber, Upload, Image, Typography, message, Space, To
 import { PlusOutlined } from '@ant-design/icons'
 import type { UploadFile, UploadProps } from 'antd'
 import { useAppDispatch, useAppSelector } from '@/store/hooks'
-import { updateBasicInfo, setEditing } from '@/store/growerSlice'
+import { updateBasicInfo, setBasicInfo, setEditing } from '@/store/growerSlice'
+import { getGrowerApi, updateGrowerApi } from '@/services/api'
+import type { GrowerFormData } from '@/types/grower'
 
 const { Text } = Typography
 
@@ -268,20 +270,38 @@ function BasicInfo() {
   const dispatch = useAppDispatch()
   const identity = useAppSelector((state) => state.auth.identity)
   const isLoggedIn = useAppSelector((state) => state.auth.isLoggedIn)
+  const username = useAppSelector((state) => state.auth.username)
   const isEditing = useAppSelector((state) => state.grower.isEditing)
   const basicInfo = useAppSelector((state) => state.grower.basicInfo)
 
   const [form] = Form.useForm()
   const prevEditingRef = useRef(isEditing)
 
+  // 从 API 获取初始数据
+  useEffect(() => {
+    if (!isLoggedIn || !username) return
+    getGrowerApi(username)
+      .then((data) => {
+        dispatch(setBasicInfo(data as unknown as GrowerFormData))
+      })
+      .catch(() => {})
+  }, [isLoggedIn, username, dispatch])
+
   // 监听 isEditing 从 true → false 时触发保存
   useEffect(() => {
     if (prevEditingRef.current && !isEditing) {
       form
         .validateFields()
-        .then((values) => {
+        .then(async (values) => {
           dispatch(updateBasicInfo(values as Record<string, unknown>))
-          message.success('保存成功')
+          try {
+            if (username) {
+              await updateGrowerApi(username, values as Record<string, unknown>)
+            }
+            message.success('保存成功')
+          } catch {
+            message.error('保存失败')
+          }
         })
         .catch(() => {
           message.error('请检查表单中的错误')
@@ -289,7 +309,7 @@ function BasicInfo() {
         })
     }
     prevEditingRef.current = isEditing
-  }, [isEditing, form, dispatch])
+  }, [isEditing, form, dispatch, username])
 
   // 从 Redux 同步数据到表单
   useEffect(() => {

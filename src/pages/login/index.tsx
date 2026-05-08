@@ -3,7 +3,9 @@ import { Card, Form, Input, Button, Typography, message } from 'antd'
 import { UserOutlined, LockOutlined } from '@ant-design/icons'
 import { useNavigate } from 'react-router-dom'
 import { useAppDispatch } from '@/store/hooks'
-import { login, checkCredentials } from '@/store/authSlice'
+import { login } from '@/store/authSlice'
+import { setToken } from '@/utils/cookie'
+import { loginApi } from '@/services/api'
 
 const { Title, Text } = Typography
 
@@ -17,17 +19,16 @@ function LoginPage() {
   const navigate = useNavigate()
   const dispatch = useAppDispatch()
 
-  const handleFinish = (values: FormValues) => {
+  const handleFinish = async (values: FormValues) => {
     setLoading(true)
     try {
-      const identity = checkCredentials(values.username, values.password)
-      if (identity) {
-        dispatch(login({ username: values.username, identity }))
-        message.success('登录成功')
-        navigate('/growers')
-      } else {
-        message.error('用户名或密码错误')
-      }
+      const result = await loginApi(values.username, values.password)
+      setToken(result.token, 86400) // 24小时
+      dispatch(login({ username: result.username, identity: result.identity }))
+      message.success('登录成功')
+      navigate('/growers')
+    } catch {
+      message.error('用户名或密码错误')
     } finally {
       setLoading(false)
     }

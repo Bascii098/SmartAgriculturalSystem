@@ -1,9 +1,35 @@
-import { useEffect, useMemo } from 'react'
+import { useEffect, useMemo, useState } from 'react'
 import { Link } from 'react-router-dom'
-import { Tabs, Card, Select, Form, Button, Table, Tag, Empty, message, Popconfirm, Typography, Space } from 'antd'
+import {
+  Tabs,
+  Card,
+  Select,
+  Form,
+  Button,
+  Table,
+  Tag,
+  Empty,
+  message,
+  Popconfirm,
+  Typography,
+  Space,
+} from 'antd'
 import { useAppDispatch, useAppSelector } from '@/store/hooks'
-import { initializePlotsForUser, createHandover, confirmHandover, rejectHandover } from '@/store/handoverSlice'
+import {
+  initializePlotsForUser,
+  createHandover,
+  confirmHandover,
+  rejectHandover,
+} from '@/store/handoverSlice'
 import { getAllUsers } from '@/store/authSlice'
+import {
+  getPlotsApi,
+  getHandoversApi,
+  createHandoverApi,
+  confirmHandoverApi,
+  rejectHandoverApi,
+} from '@/services/api'
+import type { PlotFeature } from '@/types/plot'
 import type { HandoverRecord, HandoverStatus } from '@/types/grower'
 
 const { Text } = Typography
@@ -28,37 +54,58 @@ function HandoverManagement() {
   const dispatch = useAppDispatch()
   const isLoggedIn = useAppSelector((state) => state.auth.isLoggedIn)
   const username = useAppSelector((state) => state.auth.username)
-  const plots = useAppSelector((state) => state.handover.plots)
-  const handovers = useAppSelector((state) => state.handover.handovers)
+  const reduxPlots = useAppSelector((state) => state.handover.plots)
+  const reduxHandovers = useAppSelector((state) => state.handover.handovers)
 
   const [form] = Form.useForm()
 
-  // 首次进入时初始化地块
+  // API 数据（本地 state）
+  const [plots, setPlots] = useState<PlotFeature[]>([])
+  const [handoverRecords, setHandoverRecords] = useState<HandoverRecord[]>([])
+
+  // 初始化：从 API 拿数据，同时同步到 Redux
   useEffect(() => {
-    if (isLoggedIn && username) {
-      dispatch(initializePlotsForUser(username))
-    }
+    if (!isLoggedIn || !username) return
+    dispatch(initializePlotsForUser(username))
+    getPlotsApi()
+      .then((data) => setPlots(data))
+      .catch(() => {})
+    getHandoversApi()
+      .then((data) => setHandoverRecords(data))
+      .catch(() => {})
   }, [isLoggedIn, username, dispatch])
 
-  // 当前用户的地块
-  const myPlots = useMemo(
-    () => plots.filter((p) => p.owner === username),
-    [plots, username],
-  )
+  // 我的地块：优先用 API 数据，fallback 到 Redux
+  const myPlots = useMemo(() => {
+    if (plots.length > 0) return plots.filter((p) => p.owner === username)
+    return reduxPlots.filter((p) => p.owner === username)
+  }, [plots, reduxPlots, username])
+
+  // 交接记录：API 数据 + Redux 去重
+  const allHandovers = useMemo(() => {
+    const merged = [...handoverRecords]
+    reduxHandovers.forEach((rh) => {
+      if (!merged.find((m) => m.id === rh.id)) merged.push(rh)
+    })
+    return merged
+  }, [handoverRecords, reduxHandovers])
 
   // 待确认的交接
   const pendingHandovers = useMemo(
-    () => handovers.filter((h) => h.toUser === username && h.status === 'pending'),
-    [handovers, username],
+    () =>
+      allHandovers.filter(
+        (h) => h.toUser === username && h.status === 'pending',
+      ),
+    [allHandovers, username],
   )
 
   // 交接记录（当前用户发起或接收的）
   const myHandovers = useMemo(
     () =>
-      [...handovers]
+      [...allHandovers]
         .filter((h) => h.fromUser === username || h.toUser === username)
         .sort((a, b) => b.createdAt - a.createdAt),
-    [handovers, username],
+    [allHandovers, username],
   )
 
   // 可选的接收方（其他种植户）
@@ -72,7 +119,7 @@ function HandoverManagement() {
   const plotOptions = useMemo(
     () =>
       myPlots.map((p) => {
-        const hasPending = handovers.some(
+        const hasPending = allHandovers.some(
           (h) => h.plotId === p.id && h.fromUser === username && h.status === 'pending',
         )
         return {
@@ -81,39 +128,65 @@ function HandoverManagement() {
           disabled: hasPending,
         }
       }),
-    [myPlots, handovers, username],
+    [myPlots, allHandovers, username],
   )
 
-  const handleCreateHandover = (values: { receiver: string; plot: string }) => {
-    const plot = plots.find((p) => p.id === values.plot)
+  const handleCreateHandover = async (values: {
+    receiver: string
+    plot: string
+  }) => {
+    const plot = myPlots.find((p) => p.id === values.plot)
     if (!plot) return
 
-    const hasPending = handovers.some(
-      (h) => h.plotId === plot.id && h.fromUser === username && h.status === 'pending',
+    const hasPending = allHandovers.some(
+      (h) =>
+        h.plotId === plot.id && h.fromUser === username && h.status === 'pending',
     )
     if (hasPending) {
       message.warning('该地块已有待确认的交接，不能重复发起')
       return
     }
 
-    dispatch(createHandover({
-      fromUser: username,
-      toUser: values.receiver,
-      plotId: plot.id,
-      plotName: plot.name,
-    }))
-    message.success('交接发起成功')
-    form.resetFields()
+    try {
+      await createHandoverApi({
+        fromUser: username as string,
+        toUser: values.receiver,
+        plotId: plot.id,
+        plotName: plot.name,
+      })
+      dispatch(
+        createHandover({
+          fromUser: username as string,
+          toUser: values.receiver,
+          plotId: plot.id,
+          plotName: plot.name,
+        }),
+      )
+      message.success('交接发起成功')
+      form.resetFields()
+    } catch {
+      message.error('发起失败')
+    }
   }
 
-  const handleConfirm = (record: HandoverRecord) => {
-    dispatch(confirmHandover(record.id))
-    message.success(`已确认接收地块「${record.plotName}」`)
+  const handleConfirm = async (record: HandoverRecord) => {
+    try {
+      await confirmHandoverApi(record.id)
+      dispatch(confirmHandover(record.id))
+      message.success(`已确认接收地块「${record.plotName}」`)
+    } catch {
+      message.error('操作失败')
+    }
   }
 
-  const handleReject = (record: HandoverRecord) => {
-    dispatch(rejectHandover(record.id))
-    message.success(`已拒绝地块「${record.plotName}」的交接`)
+  const handleReject = async (record: HandoverRecord) => {
+    try {
+      await rejectHandoverApi(record.id)
+      dispatch(rejectHandover(record.id))
+      message.success(`已拒绝地块「${record.plotName}」的交接`)
+    } catch {
+      message.error('操作失败')
+    }
   }
 
   // 未登录状态 — 复用 BasicInfo 中的提示风格
