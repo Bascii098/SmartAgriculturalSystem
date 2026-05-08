@@ -70,6 +70,40 @@
   padding: 24px;
 }
 
+// 种植者基础信息卡片
+.basic-info-card {
+  background: #fff;
+  border-radius: 8px;
+  padding: 24px;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.08);
+  transition: box-shadow 0.3s, transform 0.3s;
+  position: relative;
+
+  &:hover {
+    box-shadow: 0 4px 16px rgba(0, 0, 0, 0.12);
+    transform: translateY(-2px);
+  }
+
+  &__identity {
+    position: absolute;
+    top: -12px;
+    left: 24px;
+    background: #1890ff;
+    color: #fff;
+    padding: 2px 12px;
+    border-radius: 4px;
+    font-size: 13px;
+  }
+}
+
+// 种植者表单 — 左右两列
+.basic-info-form {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 0 32px;
+  margin-top: 8px;
+}
+
 // 顶部信息栏
 .header-info {
   margin-right: 16px;
@@ -77,4 +111,30 @@
 
 .header-time {
   font-size: 14px;
+}
+
+// 交接管理
+.handover-plots-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(200px, 1fr));
+  gap: 16px;
+}
+
+.handover-plot-card {
+  border-radius: 8px;
+  transition: box-shadow 0.3s;
+
+  &:hover {
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+  }
+}
+
+.handover-form {
+  max-width: 480px;
+}
+
+.handover-list {
+  .ant-list-item-action {
+    margin-inline-start: 24px;
+  }
 }

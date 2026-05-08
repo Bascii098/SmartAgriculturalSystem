@@ -1,6 +1,6 @@
-import { useEffect, useRef } from 'react'
+import { useEffect, useRef, useState } from 'react'
 import { Link } from 'react-router-dom'
-import { Form, Input, InputNumber, Upload, Typography, message, Space } from 'antd'
+import { Form, Input, InputNumber, Upload, Image, Typography, message, Space, Tooltip } from 'antd'
 import { PlusOutlined } from '@ant-design/icons'
 import type { UploadFile, UploadProps } from 'antd'
 import { useAppDispatch, useAppSelector } from '@/store/hooks'
@@ -15,12 +15,30 @@ const toFileList = (url: string | undefined): UploadFile[] => {
 }
 
 /**
+ * 文本输入组件 — disabled 时若内容过长显示省略号 + hover tooltip
+ */
+function TextField({
+  value,
+  disabled,
+  ...rest
+}: {
+  value?: string
+  disabled?: boolean
+  [key: string]: unknown
+}) {
+  const input = <Input {...rest} value={value} disabled={disabled} />
+  if (disabled && value && value.length > 12) {
+    return (
+      <Tooltip title={value} placement="topLeft">
+        {input}
+      </Tooltip>
+    )
+  }
+  return input
+}
+
+/**
  * 照片上传字段组件
- *
- * - 非编辑态 + 无图片 → 显示「暂无照片」
- * - 非编辑态 + 有图片 → 显示缩略图，无上传/删除按钮
- * - 编辑态 + 无图片 → 显示上传按钮
- * - 编辑态 + 有图片 → 显示缩略图 + 删除按钮
  */
 function UploadField({
   value,
@@ -31,6 +49,8 @@ function UploadField({
   onChange?: (value: string) => void
   disabled?: boolean
 }) {
+  const [previewVisible, setPreviewVisible] = useState(false)
+
   if (disabled && !value) {
     return <Text type="secondary">暂无照片</Text>
   }
@@ -47,29 +67,44 @@ function UploadField({
   }
 
   return (
-    <Upload
-      listType="picture-card"
-      maxCount={1}
-      fileList={fileList}
-      beforeUpload={handleBeforeUpload}
-      onRemove={() => onChange?.('')}
-      showUploadList={
-        disabled
-          ? { showPreviewIcon: false, showRemoveIcon: false }
-          : undefined
-      }
-    >
-      {!disabled && !value && (
-        <div>
-          <PlusOutlined />
-          <div style={{ marginTop: 8 }}>上传</div>
-        </div>
+    <>
+      <Upload
+        listType="picture-card"
+        maxCount={1}
+        fileList={fileList}
+        beforeUpload={handleBeforeUpload}
+        onRemove={() => onChange?.('')}
+        onPreview={() => {
+          if (value) setPreviewVisible(true)
+        }}
+        showUploadList={
+          disabled
+            ? { showPreviewIcon: false, showRemoveIcon: false }
+            : undefined
+        }
+      >
+        {!disabled && !value && (
+          <div>
+            <PlusOutlined />
+            <div style={{ marginTop: 8 }}>上传</div>
+          </div>
+        )}
+      </Upload>
+      {value && (
+        <Image
+          style={{ display: 'none' }}
+          src={value}
+          preview={{
+            visible: previewVisible,
+            onVisibleChange: (v) => setPreviewVisible(v),
+          }}
+        />
       )}
-    </Upload>
+    </>
   )
 }
 
-/** 种植户表单字段（identity === 'grower'） */
+/** 种植户表单字段 */
 function GrowerFields({ disabled }: { disabled: boolean }) {
   return (
     <>
@@ -92,28 +127,28 @@ function GrowerFields({ disabled }: { disabled: boolean }) {
         label="姓名"
         rules={[{ required: true, message: '请输入姓名' }]}
       >
-        <Input disabled={disabled} />
+        <TextField disabled={disabled} />
       </Form.Item>
       <Form.Item
         name="contactPhone"
         label="联系电话"
         rules={[{ required: true, message: '请输入联系电话' }]}
       >
-        <Input disabled={disabled} />
+        <TextField disabled={disabled} />
       </Form.Item>
       <Form.Item
         name="contactAddress"
         label="联系地址"
         rules={[{ required: true, message: '请输入联系地址' }]}
       >
-        <Input disabled={disabled} />
+        <TextField disabled={disabled} />
       </Form.Item>
       <Form.Item
         name="idNumber"
         label="身份证号码"
         rules={[{ required: true, message: '请输入身份证号码' }]}
       >
-        <Input disabled={disabled} />
+        <TextField disabled={disabled} />
       </Form.Item>
       <Form.Item
         name="yearsOfExperience"
@@ -131,7 +166,7 @@ function GrowerFields({ disabled }: { disabled: boolean }) {
         label="农业岗位"
         rules={[{ required: true, message: '请输入农业岗位' }]}
       >
-        <Input disabled={disabled} />
+        <TextField disabled={disabled} />
       </Form.Item>
       <Form.Item
         name="idCardFrontUrl"
@@ -151,7 +186,7 @@ function GrowerFields({ disabled }: { disabled: boolean }) {
   )
 }
 
-/** 种植合作社表单字段（identity === 'cooperative'） */
+/** 种植合作社表单字段 */
 function CooperativeFields({ disabled }: { disabled: boolean }) {
   return (
     <>
@@ -174,35 +209,35 @@ function CooperativeFields({ disabled }: { disabled: boolean }) {
         label="合作社名称"
         rules={[{ required: true, message: '请输入合作社名称' }]}
       >
-        <Input disabled={disabled} />
+        <TextField disabled={disabled} />
       </Form.Item>
       <Form.Item
         name="contactPerson"
         label="联系人"
         rules={[{ required: true, message: '请输入联系人' }]}
       >
-        <Input disabled={disabled} />
+        <TextField disabled={disabled} />
       </Form.Item>
       <Form.Item
         name="contactAddress"
         label="联系地址"
         rules={[{ required: true, message: '请输入联系地址' }]}
       >
-        <Input disabled={disabled} />
+        <TextField disabled={disabled} />
       </Form.Item>
       <Form.Item
         name="contactPhone"
         label="联系电话"
         rules={[{ required: true, message: '请输入联系电话' }]}
       >
-        <Input disabled={disabled} />
+        <TextField disabled={disabled} />
       </Form.Item>
       <Form.Item
         name="contactIdNumber"
         label="联系人身份证号"
         rules={[{ required: true, message: '请输入联系人身份证号' }]}
       >
-        <Input disabled={disabled} />
+        <TextField disabled={disabled} />
       </Form.Item>
       <Form.Item
         name="businessLicenseUrl"
@@ -279,18 +314,24 @@ function BasicInfo() {
   }
 
   return (
-    <Form
-      form={form}
-      layout="vertical"
-      initialValues={basicInfo ?? undefined}
-      key={identity}
-    >
-      {identity === 'grower' ? (
-        <GrowerFields disabled={!isEditing} />
-      ) : (
-        <CooperativeFields disabled={!isEditing} />
-      )}
-    </Form>
+    <div className="basic-info-card">
+      <span className="basic-info-card__identity">
+        {identity === 'grower' ? '种植户' : '种植合作社'}
+      </span>
+      <Form
+        form={form}
+        layout="vertical"
+        className="basic-info-form"
+        initialValues={basicInfo ?? undefined}
+        key={identity}
+      >
+        {identity === 'grower' ? (
+          <GrowerFields disabled={!isEditing} />
+        ) : (
+          <CooperativeFields disabled={!isEditing} />
+        )}
+      </Form>
+    </div>
   )
 }
 

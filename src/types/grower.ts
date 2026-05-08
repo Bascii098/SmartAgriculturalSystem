@@ -27,3 +27,21 @@ export interface CooperativeInfo {
 }
 
 export type GrowerFormData = GrowerInfo | CooperativeInfo;
+
+export interface Plot {
+  id: string
+  name: string
+  owner: string // username
+}
+
+export type HandoverStatus = 'pending' | 'confirmed' | 'rejected'
+
+export interface HandoverRecord {
+  id: string
+  fromUser: string
+  toUser: string
+  plotId: string
+  plotName: string
+  status: HandoverStatus
+  createdAt: number
+}

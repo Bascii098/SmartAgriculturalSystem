@@ -46,6 +46,15 @@ export function registerUser(username: string, password: string, identity: Ident
   return true
 }
 
+/** 获取所有已注册用户列表 */
+export function getAllUsers(): { username: string; identity: Identity }[] {
+  const users: { username: string; identity: Identity }[] = []
+  userDatabase.forEach((record, username) => {
+    users.push({ username, identity: record.identity })
+  })
+  return users
+}
+
 const authSlice = createSlice({
   name: 'auth',
   initialState,
