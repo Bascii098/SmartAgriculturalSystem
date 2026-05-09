@@ -1,5 +1,6 @@
 import { createBrowserRouter, Navigate } from 'react-router-dom'
 import MainLayout from '@/layouts/MainLayout'
+import Dashboard from '@/pages/Dashboard'
 import GIS from '@/pages/GIS'
 import LoginPage from '@/pages/login/index'
 import RegisterPage from '@/pages/register/index'
@@ -15,7 +16,8 @@ const router = createBrowserRouter([
   {
     element: <MainLayout />,
     children: [
-      { index: true, element: <GIS /> },
+      { index: true, element: <Dashboard /> },
+      { path: 'gis', element: <GIS /> },
       {
         path: 'growers',
         element: <Growers />,

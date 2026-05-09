@@ -1,5 +1,5 @@
 import axios from 'axios'
-import { getToken, removeToken } from '@/utils/cookie'
+import { getToken, getIdentity, removeToken, removeIdentity } from '@/utils/cookie'
 
 const http = axios.create({
   baseURL: 'http://127.0.0.1:4523/m1/8236440-7997632-default',
@@ -7,12 +7,16 @@ const http = axios.create({
   headers: { 'Content-Type': 'application/json' },
 })
 
-// 请求拦截器：自动附加 Token
+// 请求拦截器：自动附加 Token + X-Identity
 http.interceptors.request.use(
   (config) => {
     const token = getToken()
     if (token) {
       config.headers.Authorization = `Bearer ${token}`
+      const identity = getIdentity()
+      if (identity) {
+        config.headers['X-Identity'] = identity
+      }
     }
     return config
   },
@@ -25,7 +29,7 @@ http.interceptors.response.use(
   (error) => {
     if (error.response?.status === 401) {
       removeToken()
-      // 全页跳转，强制清空 Redux 状态
+      removeIdentity()
       window.location.href = '/login'
     }
     return Promise.reject(error)

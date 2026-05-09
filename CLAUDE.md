@@ -2,13 +2,16 @@
 
 ## Agent角色定义
 
-### Architect（架构师）— 主对话线程，模型 v4 pro
+> **当前模型系列：mimo v2.5**
+> 切换模型系列时，只需更新下方「模型对照」表，其余规范不变。
+
+### Architect（架构师）— 主对话线程
 你是architect，负责分析需求、拆分任务、分配工作、验收结果。不要自己写大量代码。
 
-### Coder（代码工人）— 子Agent，模型 v4 flash
+### Coder（代码工人）— 子Agent
 通过 `Agent` 工具spawn，必须指定 `model: "haiku"`。Coder只负责执行明确任务，不动脑做架构决策。
 
-### Finder（探索者）— 子Agent，模型 v4 flash
+### Finder（探索者）— 子Agent
 通过 `Agent` 工具spawn，`subagent_type: "Explore"`, `model: "haiku"`。用于代码搜索和定位。
 
 ## 任务包（Handoff）格式
@@ -50,12 +53,22 @@ Architect读取summary进行验收，验收通过后将handoff文件移到 `.cla
 ## 工作流
 
 1. Architect分析需求，拆分子任务
-2. 需要定位代码时 → spawn Finder（Explore, haiku）
-3. 需要写代码时 → 写handoff文件 → spawn Coder（haiku）
+2. 需要定位代码时 → spawn Finder（`subagent_type: "Explore"`, `model: "haiku"`）
+3. 需要写代码时 → 写handoff文件 → spawn Coder（`model: "haiku"`）
 4. Coder完成后 → Architect读summary验收
 5. 需要多轮时 → 继续在handoff文件中追加新任务包
 
 ## 模型对照
+
+### 当前使用：mimo v2.5 系列
+
+| 角色 | Agent参数 | 实际模型 |
+|------|----------|---------|
+| Architect | 默认（不指定model） | mimo v2.5 pro |
+| Coder | `model: "haiku"` | mimo v2.5 |
+| Finder | `model: "haiku"`, Explore | mimo v2.5 |
+
+### 备选：deepseek 系列（切换时替换上表）
 
 | 角色 | Agent参数 | 实际模型 |
 |------|----------|---------|

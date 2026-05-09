@@ -4,7 +4,7 @@ import { UserOutlined, LockOutlined } from '@ant-design/icons'
 import { useNavigate } from 'react-router-dom'
 import { useAppDispatch } from '@/store/hooks'
 import { login } from '@/store/authSlice'
-import { setToken } from '@/utils/cookie'
+import { setToken, setIdentity } from '@/utils/cookie'
 import { loginApi } from '@/services/api'
 
 const { Title, Text } = Typography
@@ -24,9 +24,10 @@ function LoginPage() {
     try {
       const result = await loginApi(values.username, values.password)
       setToken(result.token, 86400) // 24小时
+      setIdentity(result.identity, 86400)
       dispatch(login({ username: result.username, identity: result.identity }))
       message.success('登录成功')
-      navigate('/growers')
+      navigate('/')
     } catch {
       message.error('用户名或密码错误')
     } finally {

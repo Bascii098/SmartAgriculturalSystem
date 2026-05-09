@@ -14,3 +14,17 @@ export function setToken(token: string, expiresInSeconds: number): void {
 export function removeToken(): void {
   Cookies.remove(TOKEN_KEY, { path: '/' })
 }
+
+const IDENTITY_KEY = 'auth_identity'
+
+export function getIdentity(): string | undefined {
+  return Cookies.get(IDENTITY_KEY)
+}
+
+export function setIdentity(identity: string, expiresInSeconds: number): void {
+  Cookies.set(IDENTITY_KEY, identity, { expires: expiresInSeconds / 86400, path: '/' })
+}
+
+export function removeIdentity(): void {
+  Cookies.remove(IDENTITY_KEY, { path: '/' })
+}
