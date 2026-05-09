@@ -40,21 +40,18 @@ export const fetchFarm = createAsyncThunk('farm/fetchFarm', async (id: string) =
 })
 
 export const addFarm = createAsyncThunk('farm/addFarm', async (data: FarmFormData) => {
-  const { id } = await createFarmApi(data)
-  return { ...data, id, createdAt: Date.now() } as Farm
+  await createFarmApi(data)
 })
 
 export const editFarm = createAsyncThunk(
   'farm/editFarm',
   async ({ id, data }: { id: string; data: Partial<FarmFormData> }) => {
     await updateFarmApi(id, data)
-    return { id, changes: data }
   },
 )
 
 export const removeFarm = createAsyncThunk('farm/removeFarm', async (id: string) => {
   await deleteFarmApi(id)
-  return id
 })
 
 // ===== 地块 async thunks =====
@@ -69,8 +66,7 @@ export const fetchFarmPlots = createAsyncThunk(
 export const addPlot = createAsyncThunk(
   'farm/addPlot',
   async ({ farmId, data }: { farmId: string; data: PlotFormData }) => {
-    const { id } = await createPlotApi(farmId, data)
-    return { ...data, id, farmId } as PlotFeature
+    await createPlotApi(farmId, data)
   },
 )
 
@@ -78,13 +74,11 @@ export const editPlot = createAsyncThunk(
   'farm/editPlot',
   async ({ id, data }: { id: string; data: Partial<PlotFormData> }) => {
     await updatePlotApi(id, data)
-    return { id, changes: data }
   },
 )
 
 export const removePlot = createAsyncThunk('farm/removePlot', async (id: string) => {
   await deletePlotApi(id)
-  return id
 })
 
 const farmSlice = createSlice({
@@ -113,21 +107,6 @@ const farmSlice = createSlice({
       .addCase(fetchFarm.fulfilled, (state, action: PayloadAction<Farm>) => {
         state.currentFarm = action.payload
       })
-      // addFarm
-      .addCase(addFarm.fulfilled, (state, action: PayloadAction<Farm>) => {
-        state.farms.push(action.payload)
-      })
-      // editFarm
-      .addCase(editFarm.fulfilled, (state, action) => {
-        const { id, changes } = action.payload
-        const idx = state.farms.findIndex((f) => f.id === id)
-        if (idx !== -1) Object.assign(state.farms[idx], changes)
-        if (state.currentFarm?.id === id) Object.assign(state.currentFarm, changes)
-      })
-      // removeFarm
-      .addCase(removeFarm.fulfilled, (state, action: PayloadAction<string>) => {
-        state.farms = state.farms.filter((f) => f.id !== action.payload)
-      })
       // fetchFarmPlots
       .addCase(fetchFarmPlots.pending, (state) => {
         state.plotsLoading = true
@@ -138,20 +117,6 @@ const farmSlice = createSlice({
       })
       .addCase(fetchFarmPlots.rejected, (state) => {
         state.plotsLoading = false
-      })
-      // addPlot
-      .addCase(addPlot.fulfilled, (state, action: PayloadAction<PlotFeature>) => {
-        state.plots.push(action.payload)
-      })
-      // editPlot
-      .addCase(editPlot.fulfilled, (state, action) => {
-        const { id, changes } = action.payload
-        const idx = state.plots.findIndex((p) => p.id === id)
-        if (idx !== -1) Object.assign(state.plots[idx], changes)
-      })
-      // removePlot
-      .addCase(removePlot.fulfilled, (state, action: PayloadAction<string>) => {
-        state.plots = state.plots.filter((p) => p.id !== action.payload)
       })
   },
 })

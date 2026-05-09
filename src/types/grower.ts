@@ -2,7 +2,6 @@ export type Identity = 'grower' | 'cooperative';
 
 export interface GrowerInfo {
   username: string;
-  password: string;
   name: string;
   contactPhone: string;
   contactAddress: string;
@@ -15,7 +14,6 @@ export interface GrowerInfo {
 
 export interface CooperativeInfo {
   username: string;
-  password: string;
   cooperativeName: string;
   contactPerson: string;
   contactAddress: string;

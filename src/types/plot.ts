@@ -14,21 +14,21 @@ export interface SoilTestResult {
 /** 地块表单数据 */
 export interface PlotFormData {
   name: string
-  soilType: string
-  plotShape: string
-  landNature: string
-  irrigationFacility: boolean
   area: number
-  address: string
-  crops: PlotCrop[]
   coordinates: [number, number][]
   center: [number, number]
-  planter: string
-  plantingDate: string
-  landCertNumber: string
-  landCertArea: number
-  landCertStart: string
-  landCertEnd: string
+  soilType?: string
+  plotShape?: string
+  landNature?: string
+  irrigationFacility?: boolean
+  address?: string
+  crops?: PlotCrop[]
+  planter?: string
+  plantingDate?: string
+  landCertNumber?: string
+  landCertArea?: number
+  landCertStart?: string
+  landCertEnd?: string
 }
 
 /** 地块 */
@@ -39,6 +39,7 @@ export interface PlotFeature {
   crops: PlotCrop[]
   address: string
   owner: string
+  /** 坐标格式: [lat, lng] */
   coordinates: [number, number][]
   center: [number, number]
   color?: string

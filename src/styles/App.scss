@@ -502,19 +502,31 @@
 // 农场详情
 // ========================================
 .farm-detail {
+  display: flex;
+  flex-direction: column;
+  height: calc(100vh - 120px);
+
   &__header {
-    margin-bottom: var(--space-md);
+    flex-shrink: 0;
+    margin-bottom: var(--space-sm);
   }
 
   &__info {
+    flex-shrink: 0;
     border-radius: var(--radius-lg);
+    margin-bottom: var(--space-md);
+  }
+
+  &__body {
+    flex: 1;
+    min-height: 0;
   }
 
   &__plots-header {
     display: flex;
     justify-content: space-between;
     align-items: center;
-    margin-bottom: var(--space-md);
+    margin-bottom: var(--space-sm);
 
     h3 {
       margin: 0;
@@ -526,42 +538,75 @@
     display: flex;
     flex-direction: column;
     gap: var(--space-sm);
+    overflow-y: auto;
+    flex: 1;
+    min-height: 0;
+    padding-right: 4px;
   }
 
   &__map-card {
     border-radius: var(--radius-lg);
   }
 
+  &__map-card {
+    height: 100%;
+
+    .ant-card-body {
+      height: calc(100% - 56px);
+      padding: 12px;
+    }
+  }
+
   &__map-container {
     border-radius: var(--radius-md);
     overflow: hidden;
+    height: 100%;
   }
 }
 
 .plot-card {
   border-radius: var(--radius-md);
-  transition: box-shadow var(--transition-normal);
+  transition: box-shadow var(--transition-normal), border-color var(--transition-normal);
+  cursor: pointer;
+
+  .ant-card-body {
+    padding: 10px 12px;
+  }
 
   &:hover {
     box-shadow: var(--shadow-sm);
   }
 
+  &--selected {
+    border-color: var(--color-primary);
+    box-shadow: 0 0 0 1px var(--color-primary);
+  }
+
   &__content {
     display: flex;
     flex-direction: column;
-    gap: 4px;
+    gap: 3px;
+  }
+
+  &__row {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
   }
 
   &__title {
     font-weight: 600;
-    font-size: 15px;
+    font-size: 14px;
   }
 
-  &__meta {
-    display: flex;
-    align-items: center;
-    gap: var(--space-sm);
+  &__area {
     font-size: 13px;
+    font-weight: 500;
+    color: var(--color-primary);
+  }
+
+  &__detail {
+    font-size: 12px;
     color: var(--color-text-secondary);
   }
 
@@ -569,7 +614,6 @@
     display: flex;
     flex-wrap: wrap;
     gap: 4px;
-    margin-top: 4px;
   }
 }
 

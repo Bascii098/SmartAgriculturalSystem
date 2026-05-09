@@ -143,10 +143,8 @@ function GIS() {
 
     // 绘制新的
     plots.forEach((plot) => {
-      // Leaflet 需要 [lat, lng] 格式，数据中坐标为 [lng, lat]
-      const latLngs = plot.coordinates.map(
-        (coord) => [coord[1], coord[0]] as [number, number],
-      )
+      // 服务器返回 [lat, lng] 格式，Leaflet 也需要 [lat, lng]
+      const latLngs = plot.coordinates as [number, number][]
 
       const polygon = L.polygon(latLngs, {
         color: plot.color || '#1890ff',

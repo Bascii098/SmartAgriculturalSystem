@@ -2,7 +2,7 @@ import axios from 'axios'
 import { getToken, getIdentity, removeToken, removeIdentity } from '@/utils/cookie'
 
 const http = axios.create({
-  baseURL: 'http://127.0.0.1:4523/m1/8236440-7997632-default',
+  baseURL: 'http://localhost:3001',
   timeout: 10000,
   headers: { 'Content-Type': 'application/json' },
 })

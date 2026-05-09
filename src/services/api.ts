@@ -50,6 +50,19 @@ export async function registerApi(
   )
 }
 
+// ===== Change Password =====
+export async function changePasswordApi(
+  username: string,
+  oldPassword: string,
+  newPassword: string,
+) {
+  return request<null>('put', '/api/auth/password', {
+    username,
+    oldPassword,
+    newPassword,
+  })
+}
+
 // ===== Growers =====
 export async function getGrowersApi() {
   return request<{ username: string; identity: Identity }[]>('get', '/api/growers')

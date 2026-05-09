@@ -78,6 +78,7 @@ function FarmList() {
   const handleDelete = async (id: string, e: React.MouseEvent) => {
     e.stopPropagation()
     await dispatch(removeFarm(id))
+    await dispatch(fetchFarms())
     message.success('删除成功')
   }
 
@@ -90,6 +91,7 @@ function FarmList() {
       await dispatch(addFarm(values))
       message.success('创建成功')
     }
+    await dispatch(fetchFarms())
     setModalOpen(false)
   }
 
