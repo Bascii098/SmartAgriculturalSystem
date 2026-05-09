@@ -1,7 +1,8 @@
 import http from './http'
 import type { Identity } from '@/types/grower'
-import type { PlotFeature } from '@/types/plot'
+import type { PlotFeature, PlotFormData } from '@/types/plot'
 import type { HandoverRecord } from '@/types/grower'
+import type { Farm, FarmFormData } from '@/types/farm'
 
 // 通用响应格式
 interface ApiResponse<T> {
@@ -106,4 +107,42 @@ export interface WeatherData {
 
 export async function getWeatherApi() {
   return request<WeatherData>('get', '/api/weather')
+}
+
+// ===== Farms =====
+export async function getFarmsApi() {
+  return request<Farm[]>('get', '/api/farms')
+}
+
+export async function getFarmApi(id: string) {
+  return request<Farm>('get', `/api/farms/${id}`)
+}
+
+export async function createFarmApi(data: FarmFormData) {
+  return request<{ id: string }>('post', '/api/farms', data)
+}
+
+export async function updateFarmApi(id: string, data: Partial<FarmFormData>) {
+  return request<null>('put', `/api/farms/${id}`, data)
+}
+
+export async function deleteFarmApi(id: string) {
+  return request<null>('post', `/api/farms/${id}/delete`)
+}
+
+// ===== Farm Plots =====
+export async function getFarmPlotsApi(farmId: string) {
+  return request<PlotFeature[]>('get', `/api/farms/${farmId}/plots`)
+}
+
+export async function createPlotApi(farmId: string, data: PlotFormData) {
+  return request<{ id: string }>('post', `/api/farms/${farmId}/plots`, data)
+}
+
+export async function updatePlotApi(id: string, data: Partial<PlotFormData>) {
+  return request<null>('put', `/api/plots/${id}`, data)
+}
+
+export async function deletePlotApi(id: string) {
+  return request<null>('post', `/api/plots/${id}/delete`)
 }

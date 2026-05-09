@@ -455,6 +455,125 @@
 }
 
 // ========================================
+// 农场管理
+// ========================================
+.farms-page {
+  .farms-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: var(--space-lg);
+  }
+}
+
+.farm-card {
+  border-radius: var(--radius-lg);
+  transition: box-shadow var(--transition-normal), transform var(--transition-normal);
+
+  &:hover {
+    box-shadow: var(--shadow-md);
+    transform: translateY(-2px);
+  }
+
+  .ant-card-body {
+    padding: var(--space-md);
+  }
+
+  &__info {
+    p {
+      margin: 4px 0;
+      color: var(--color-text-secondary);
+      font-size: 13px;
+    }
+  }
+
+  &__stats {
+    display: flex;
+    gap: var(--space-md);
+    margin-top: var(--space-sm);
+    padding-top: var(--space-sm);
+    border-top: 1px solid var(--color-border);
+    font-size: 13px;
+    color: var(--color-text-secondary);
+  }
+}
+
+// ========================================
+// 农场详情
+// ========================================
+.farm-detail {
+  &__header {
+    margin-bottom: var(--space-md);
+  }
+
+  &__info {
+    border-radius: var(--radius-lg);
+  }
+
+  &__plots-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: var(--space-md);
+
+    h3 {
+      margin: 0;
+      font-size: 16px;
+    }
+  }
+
+  &__plots-list {
+    display: flex;
+    flex-direction: column;
+    gap: var(--space-sm);
+  }
+
+  &__map-card {
+    border-radius: var(--radius-lg);
+  }
+
+  &__map-container {
+    border-radius: var(--radius-md);
+    overflow: hidden;
+  }
+}
+
+.plot-card {
+  border-radius: var(--radius-md);
+  transition: box-shadow var(--transition-normal);
+
+  &:hover {
+    box-shadow: var(--shadow-sm);
+  }
+
+  &__content {
+    display: flex;
+    flex-direction: column;
+    gap: 4px;
+  }
+
+  &__title {
+    font-weight: 600;
+    font-size: 15px;
+  }
+
+  &__meta {
+    display: flex;
+    align-items: center;
+    gap: var(--space-sm);
+    font-size: 13px;
+    color: var(--color-text-secondary);
+  }
+
+  &__crops {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 4px;
+    margin-top: 4px;
+  }
+}
+
+// ========================================
 // 响应式
 // ========================================
 @media (max-width: 1024px) {

@@ -8,6 +8,7 @@ import Growers from '@/pages/growers/index'
 import BasicInfo from '@/pages/growers/BasicInfo'
 import HandoverManagement from '@/pages/growers/HandoverManagement'
 import Farms from '@/pages/farms/index'
+import FarmDetail from '@/pages/farms/FarmDetail'
 import Production from '@/pages/production/index'
 
 const router = createBrowserRouter([
@@ -28,6 +29,7 @@ const router = createBrowserRouter([
         ],
       },
       { path: 'farms', element: <Farms /> },
+      { path: 'farms/:id', element: <FarmDetail /> },
       { path: 'production', element: <Production /> },
     ],
   },

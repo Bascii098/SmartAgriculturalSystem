@@ -1,18 +1,58 @@
 /** 地块内的作物信息 */
 export interface PlotCrop {
-  name: string      // 作物名称
-  area: number      // 种植面积（亩）
+  name: string
+  area: number
 }
 
-/** 用户自定义地块 */
+/** 土壤检测结果 */
+export interface SoilTestResult {
+  unit: string
+  date: string
+  result: string
+}
+
+/** 地块表单数据 */
+export interface PlotFormData {
+  name: string
+  soilType: string
+  plotShape: string
+  landNature: string
+  irrigationFacility: boolean
+  area: number
+  address: string
+  crops: PlotCrop[]
+  coordinates: [number, number][]
+  center: [number, number]
+  planter: string
+  plantingDate: string
+  landCertNumber: string
+  landCertArea: number
+  landCertStart: string
+  landCertEnd: string
+}
+
+/** 地块 */
 export interface PlotFeature {
   id: string
   name: string
-  area: number             // 总面积（亩）
-  crops: PlotCrop[]        // 主要作物
-  address: string          // 地址描述
-  owner: string            // 所属种植户
-  coordinates: [number, number][]  // 多边形边界（GCJ-02，用户自定义划分）
-  center: [number, number]         // 中心点，用于地图 flyTo
-  color?: string            // 展示颜色
+  area: number
+  crops: PlotCrop[]
+  address: string
+  owner: string
+  coordinates: [number, number][]
+  center: [number, number]
+  color?: string
+  farmId: string
+  soilType?: string
+  plotShape?: string
+  landNature?: string
+  irrigationFacility?: boolean
+  planter?: string
+  planterName?: string
+  plantingDate?: string
+  landCertNumber?: string
+  landCertArea?: number
+  landCertStart?: string
+  landCertEnd?: string
+  soilTest?: SoilTestResult
 }
