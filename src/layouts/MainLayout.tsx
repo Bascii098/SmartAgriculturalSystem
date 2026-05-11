@@ -68,7 +68,6 @@ function MainLayout() {
           selectedKeys={[selectedKey]}
           items={menuItems}
           onClick={handleMenuClick}
-          style={{ borderBottom: 'none' }}
         />
         <HeaderInfo />
         <Dropdown
@@ -76,8 +75,8 @@ function MainLayout() {
           placement="bottomRight"
           trigger={['click']}
         >
-          <Space className="user-dropdown" style={{ cursor: 'pointer', padding: '0 24px' }}>
-            <Avatar size="small" icon={<UserOutlined />} style={{ backgroundColor: '#4caf50' }} />
+          <Space className="user-dropdown">
+            <Avatar size="small" icon={<UserOutlined />} />
             <span>{username}</span>
           </Space>
         </Dropdown>

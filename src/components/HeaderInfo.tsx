@@ -107,7 +107,7 @@ function HeaderInfo() {
   }, [])
 
   return (
-    <Space size="middle" style={{ marginRight: 16 }}>
+    <Space size="middle" className="header-info">
       <Tag icon={<CalendarOutlined />} color="default">
         {getGregorian()}
       </Tag>
@@ -120,7 +120,7 @@ function HeaderInfo() {
           : '加载中…'}
       </Tag>
       <Tag icon={<ClockCircleOutlined />} color="default">
-        <Text code style={{ fontSize: 14 }}>
+        <Text code className="header-time">
           {time}
         </Text>
       </Tag>

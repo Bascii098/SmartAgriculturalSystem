@@ -12,6 +12,7 @@ import {
   Select,
   Empty,
   Spin,
+  Popconfirm,
   message,
 } from 'antd'
 import {
@@ -75,8 +76,10 @@ function FarmList() {
     setModalOpen(true)
   }
 
-  const handleDelete = async (id: string, e: React.MouseEvent) => {
-    e.stopPropagation()
+  const [submitting, setSubmitting] = useState(false)
+
+  const handleDelete = async (id: string, e?: React.MouseEvent) => {
+    e?.stopPropagation()
     await dispatch(removeFarm(id))
     await dispatch(fetchFarms())
     message.success('删除成功')
@@ -84,15 +87,20 @@ function FarmList() {
 
   const handleSubmit = async () => {
     const values = await form.validateFields()
-    if (editingFarm) {
-      await dispatch(editFarm({ id: editingFarm.id, data: values }))
-      message.success('编辑成功')
-    } else {
-      await dispatch(addFarm(values))
-      message.success('创建成功')
+    setSubmitting(true)
+    try {
+      if (editingFarm) {
+        await dispatch(editFarm({ id: editingFarm.id, data: values }))
+        message.success('编辑成功')
+      } else {
+        await dispatch(addFarm(values))
+        message.success('创建成功')
+      }
+      await dispatch(fetchFarms())
+      setModalOpen(false)
+    } finally {
+      setSubmitting(false)
     }
-    await dispatch(fetchFarms())
-    setModalOpen(false)
   }
 
   return (
@@ -103,7 +111,7 @@ function FarmList() {
           prefix={<SearchOutlined />}
           value={searchText}
           onChange={(e) => setSearchText(e.target.value)}
-          style={{ width: 280 }}
+          className="farms-search-input"
           allowClear
         />
         <Button type="primary" icon={<PlusOutlined />} onClick={handleCreate}>
@@ -113,7 +121,7 @@ function FarmList() {
 
       <Spin spinning={loading}>
         {filteredFarms.length === 0 && !loading ? (
-          <Empty description="暂无农场数据" style={{ marginTop: 80 }} />
+          <Empty description="暂无农场数据" className="farms-empty" />
         ) : (
           <Row gutter={[20, 20]} className="farms-grid">
             {filteredFarms.map((farm) => (
@@ -127,10 +135,17 @@ function FarmList() {
                       key="edit"
                       onClick={(e) => handleEdit(farm, e)}
                     />,
-                    <DeleteOutlined
+                    <Popconfirm
                       key="delete"
-                      onClick={(e) => handleDelete(farm.id, e)}
-                    />,
+                      title="确定删除该农场？"
+                      description="删除后将同时删除所有关联地块，此操作不可撤销。"
+                      onConfirm={() => handleDelete(farm.id)}
+                      okText="删除"
+                      cancelText="取消"
+                      okButtonProps={{ danger: true }}
+                    >
+                      <DeleteOutlined onClick={(e) => e.stopPropagation()} />
+                    </Popconfirm>,
                   ]}
                 >
                   <Card.Meta
@@ -164,9 +179,10 @@ function FarmList() {
         onCancel={() => setModalOpen(false)}
         okText="保存"
         cancelText="取消"
+        confirmLoading={submitting}
         destroyOnHidden
       >
-        <Form form={form} layout="vertical" style={{ marginTop: 16 }}>
+        <Form form={form} layout="vertical" className="farm-modal-form">
           <Form.Item name="name" label="农场名称" rules={[{ required: true, message: '请输入农场名称' }]}>
             <Input placeholder="请输入农场名称" />
           </Form.Item>
@@ -176,12 +192,12 @@ function FarmList() {
           <Row gutter={16}>
             <Col span={12}>
               <Form.Item name="longitude" label="经度" rules={[{ required: true, message: '请输入经度' }]}>
-                <InputNumber style={{ width: '100%' }} placeholder="127.53" step={0.0001} />
+                <InputNumber className="full-width" placeholder="127.53" step={0.0001} />
               </Form.Item>
             </Col>
             <Col span={12}>
               <Form.Item name="latitude" label="纬度" rules={[{ required: true, message: '请输入纬度' }]}>
-                <InputNumber style={{ width: '100%' }} placeholder="45.25" step={0.0001} />
+                <InputNumber className="full-width" placeholder="45.25" step={0.0001} />
               </Form.Item>
             </Col>
           </Row>

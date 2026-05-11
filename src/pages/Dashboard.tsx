@@ -186,7 +186,7 @@ function Dashboard() {
         <div className="dashboard-card">
           <div className="dashboard-card__header">
             <span className="dashboard-card__title">
-              <CloudOutlined style={{ marginRight: 8 }} />
+              <CloudOutlined className="dashboard-card__title-icon" />
               实时天气
             </span>
           </div>

@@ -52,6 +52,7 @@ function HandoverManagement() {
   const [plots, setPlots] = useState<PlotFeature[]>([])
   const [handoverRecords, setHandoverRecords] = useState<HandoverRecord[]>([])
   const [users, setUsers] = useState<{ username: string; identity: string }[]>([])
+  const [submitting, setSubmitting] = useState(false)
 
   // 从后端拉取数据
   const fetchData = async () => {
@@ -133,6 +134,7 @@ function HandoverManagement() {
       return
     }
 
+    setSubmitting(true)
     try {
       await createHandoverApi({
         fromUser: username as string,
@@ -145,6 +147,8 @@ function HandoverManagement() {
       form.resetFields()
     } catch {
       message.error('发起失败')
+    } finally {
+      setSubmitting(false)
     }
   }
 
@@ -170,7 +174,7 @@ function HandoverManagement() {
 
   if (!isLoggedIn || !username) {
     return (
-      <div style={{ padding: 24, textAlign: 'center' }}>
+      <div className="empty-state">
         <Space>
           <Text type="secondary">请先</Text>
           <Link to="/login">登录</Link>
@@ -236,6 +240,7 @@ function HandoverManagement() {
               <Button
                 type="primary"
                 htmlType="submit"
+                loading={submitting}
                 disabled={myPlots.length === 0 || receiverOptions.length === 0}
               >
                 发起交接
@@ -257,6 +262,7 @@ function HandoverManagement() {
               dataSource={pendingHandovers}
               rowKey="id"
               pagination={false}
+              scroll={{ x: 'max-content' }}
               columns={[
                 { title: '发起人', dataIndex: 'fromUser', key: 'fromUser' },
                 { title: '地块名称', dataIndex: 'plotName', key: 'plotName' },
@@ -312,6 +318,7 @@ function HandoverManagement() {
               dataSource={myHandovers}
               rowKey="id"
               pagination={false}
+              scroll={{ x: 'max-content' }}
               columns={[
                 {
                   title: '类型',

@@ -69,6 +69,39 @@
     background: var(--color-bg);
     border-radius: var(--radius-md);
     text-align: center;
+    margin-top: 16px;
+  }
+
+  &__weather-grid {
+    display: flex;
+    justify-content: space-around;
+    text-align: center;
+  }
+
+  &__weather-label {
+    font-size: 12px;
+  }
+
+  &__title {
+    margin: 0;
+  }
+
+  &__desc {
+    margin-bottom: 16px;
+  }
+
+  &__chart {
+    margin-top: 16px;
+  }
+
+  &__chart-body {
+    height: 220px;
+  }
+
+  &__empty {
+    display: flex;
+    align-items: center;
+    justify-content: center;
   }
 }
 

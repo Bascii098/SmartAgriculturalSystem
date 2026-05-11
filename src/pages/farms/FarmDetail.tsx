@@ -19,6 +19,7 @@ import {
   DatePicker,
   Popconfirm,
   ColorPicker,
+  Pagination,
   message,
   Tag,
 } from 'antd'
@@ -186,6 +187,8 @@ function MapController({
   return null
 }
 
+const PAGE_SIZE = 7
+
 function FarmDetail() {
   const { id } = useParams<{ id: string }>()
   const navigate = useNavigate()
@@ -197,6 +200,9 @@ function FarmDetail() {
   const [selectedPlotId, setSelectedPlotId] = useState<string | null>(null)
   const [drawnCoords, setDrawnCoords] = useState<[number, number][]>([])
   const [mapExpanded, setMapExpanded] = useState(false)
+  const [saving, setSaving] = useState(false)
+  const [page, setPage] = useState(1)
+  const pagedPlots = plots.slice((page - 1) * PAGE_SIZE, page * PAGE_SIZE)
   const [form] = Form.useForm<PlotFormValues>()
 
   const mapRef = useRef<L.Map | null>(null)
@@ -219,9 +225,14 @@ function FarmDetail() {
     setDrawnCoords(coords)
   }, [])
 
-  /** 点击地块卡片 → 地图飞到该地块 */
+  /** 点击地块卡片 → 地图飞到该地块 + 列表跳到对应页 */
   const handleFlyToPlot = (plot: PlotFeature) => {
     setSelectedPlotId(plot.id)
+    const idx = plots.findIndex((p) => p.id === plot.id)
+    if (idx >= 0) {
+      const targetPage = Math.floor(idx / PAGE_SIZE) + 1
+      if (targetPage !== page) setPage(targetPage)
+    }
     if (plot.center && mapRef.current) {
       mapRef.current.flyTo(plot.center, 15, { duration: 1 })
     }
@@ -271,6 +282,7 @@ function FarmDetail() {
       return
     }
     const values = await form.validateFields()
+    setSaving(true)
     const plotArea = values.area ?? 0
     const crops = values.crops ?? []
     const cropsTotal = crops.reduce((sum, c) => sum + (c?.area ?? 0), 0)
@@ -302,16 +314,19 @@ function FarmDetail() {
       landCertStart: values.landCertStart?.format('YYYY-MM-DD') ?? '',
       landCertEnd: values.landCertEnd?.format('YYYY-MM-DD') ?? '',
     }
-    if (editingPlot) {
-      await dispatch(editPlot({ id: editingPlot.id, data: submitData }))
-      message.success('地块已更新')
-    } else {
-      await dispatch(addPlot({ farmId: id!, data: submitData }))
-      message.success('地块已创建')
+    try {
+      if (editingPlot) {
+        await dispatch(editPlot({ id: editingPlot.id, data: submitData }))
+        message.success('地块已更新')
+      } else {
+        await dispatch(addPlot({ farmId: id!, data: submitData }))
+        message.success('地块已创建')
+      }
+      if (id) await dispatch(fetchFarmPlots(id))
+      setDrawerOpen(false)
+    } finally {
+      setSaving(false)
     }
-    // 从后端重新拉取，确保数据一致
-    if (id) await dispatch(fetchFarmPlots(id))
-    setDrawerOpen(false)
   }
 
   const mapCenter: [number, number] =
@@ -345,9 +360,9 @@ function FarmDetail() {
         </Card>
       )}
 
-      <Row gutter={20} className="farm-detail__body" style={{ flex: 1, minHeight: 0 }}>
+      <Row gutter={20} className="farm-detail__body">
         {/* 左侧：地块列表 */}
-        <Col xs={24} lg={8} style={{ display: 'flex', flexDirection: 'column', minHeight: 0 }}>
+        <Col xs={24} lg={8} className="farm-detail__col-plots">
           <div className="farm-detail__plots-header">
             <h3>地块列表（{plots.length}）</h3>
             <Button type="primary" icon={<PlusOutlined />} onClick={handleCreatePlot}>
@@ -355,12 +370,12 @@ function FarmDetail() {
             </Button>
           </div>
 
-          <Spin spinning={plotsLoading} style={{ flex: 1, minHeight: 0, display: 'flex', flexDirection: 'column' }}>
+          <Spin spinning={plotsLoading} className="farm-detail__spin-wrapper">
             {plots.length === 0 && !plotsLoading ? (
               <Empty description="暂无地块" />
             ) : (
               <div className="farm-detail__plots-list">
-                {plots.map((plot) => (
+                {pagedPlots.map((plot) => (
                   <Card
                     key={plot.id}
                     size="small"
@@ -372,20 +387,14 @@ function FarmDetail() {
                           type="text"
                           size="small"
                           icon={<AimOutlined />}
-                          onClick={(e) => {
-                            e.stopPropagation()
-                            handleFlyToPlot(plot)
-                          }}
+                          onClick={(e) => { e.stopPropagation(); handleFlyToPlot(plot) }}
                           title="定位到地图"
                         />
                         <Button
                           type="text"
                           size="small"
                           icon={<EditOutlined />}
-                          onClick={(e) => {
-                            e.stopPropagation()
-                            handleEditPlot(plot)
-                          }}
+                          onClick={(e) => { e.stopPropagation(); handleEditPlot(plot) }}
                         />
                         <Popconfirm
                           title="确定删除该地块？"
@@ -411,13 +420,13 @@ function FarmDetail() {
                         <span className="plot-card__detail">
                           {plot.soilType || '-'} · {plot.landNature || '-'} · {plot.plotShape || '-'}
                         </span>
-                        {plot.irrigationFacility && <Tag color="cyan" style={{ fontSize: 11 }}>有灌溉</Tag>}
+                        {plot.irrigationFacility && <Tag color="cyan" className="plot-tag">有灌溉</Tag>}
                       </div>
                       {plot.crops.length > 0 && (
                         <div className="plot-card__row">
                           <span className="plot-card__crops">
                             {plot.crops.map((c, i) => (
-                              <Tag key={i} color="green" style={{ fontSize: 11 }}>
+                              <Tag key={i} color="green" className="plot-tag">
                                 {c.name} {c.area}亩
                               </Tag>
                             ))}
@@ -427,19 +436,31 @@ function FarmDetail() {
                     </div>
                   </Card>
                 ))}
+                {plots.length > PAGE_SIZE && (
+                  <Pagination
+                    size="small"
+                    current={page}
+                    pageSize={PAGE_SIZE}
+                    total={plots.length}
+                    onChange={setPage}
+                    showSizeChanger={false}
+                    showTotal={(total) => `共 ${total} 个地块`}
+                    className="farm-detail__pagination"
+                  />
+                )}
               </div>
             )}
           </Spin>
         </Col>
 
         {/* 右侧：地图 */}
-        <Col xs={24} lg={16} style={{ display: 'flex', flexDirection: 'column', minHeight: 0 }}>
-          <Card title="地块地图" className="farm-detail__map-card" style={{ height: '100%' }}>
+        <Col xs={24} lg={16} className="farm-detail__col-map">
+          <Card title="地块地图" className="farm-detail__map-card">
             <div className="farm-detail__map-container">
               <MapContainer
                 center={mapCenter}
                 zoom={13}
-                style={{ height: '100%', width: '100%' }}
+                className="farm-detail__map-fill"
                 scrollWheelZoom
               >
                 <MapController
@@ -464,7 +485,7 @@ function FarmDetail() {
                         weight: selectedPlotId === plot.id ? 4 : 2,
                       }}
                       eventHandlers={{
-                        click: () => setSelectedPlotId(plot.id),
+                        click: () => handleFlyToPlot(plot),
                       }}
                     >
                       <Popup>
@@ -494,7 +515,7 @@ function FarmDetail() {
         onClose={() => setDrawerOpen(false)}
         width={720}
         extra={
-          <Button type="primary" onClick={handleDrawerSubmit}>
+          <Button type="primary" loading={saving} onClick={handleDrawerSubmit}>
             保存
           </Button>
         }
@@ -540,7 +561,7 @@ function FarmDetail() {
                     <Row gutter={16}>
                       <Col span={8}>
                         <Form.Item name="area" label="面积（亩）" rules={[{ required: true }]}>
-                          <InputNumber style={{ width: '100%' }} min={0} placeholder="0" />
+                          <InputNumber className="full-width" min={0} placeholder="0" />
                         </Form.Item>
                       </Col>
                       <Col span={10}>
@@ -565,12 +586,12 @@ function FarmDetail() {
                 label: '地块位置（在地图上绘制）',
                 children: (
                   <div>
-                    <div style={{ position: 'relative' }}>
-                      <div style={{ height: 300, borderRadius: 8, overflow: 'hidden' }}>
+                    <div className="farm-detail__draw-preview">
+                      <div className="farm-detail__draw-map">
                         <MapContainer
                           center={drawnCoords.length > 0 ? getPolygonCenter(drawnCoords) : mapCenter}
                           zoom={drawnCoords.length > 0 ? 16 : 14}
-                          style={{ height: '100%', width: '100%' }}
+                          className="farm-detail__map-fill"
                           scrollWheelZoom
                         >
                           <MapController
@@ -589,16 +610,16 @@ function FarmDetail() {
                       <Button
                         icon={<ExpandOutlined />}
                         size="small"
-                        style={{ position: 'absolute', bottom: 8, left: 8, zIndex: 1000 }}
+                        className="farm-detail__expand-btn"
                         onClick={() => setMapExpanded(true)}
                       />
                     </div>
                     {drawnCoords.length > 0 ? (
-                      <div style={{ marginTop: 8, fontSize: 12, color: '#999' }}>
+                      <div className="farm-detail__draw-hint">
                         已绘制 {drawnCoords.length} 个顶点，可在地图上编辑或删除
                       </div>
                     ) : (
-                      <div style={{ marginTop: 8, fontSize: 12, color: '#999' }}>
+                      <div className="farm-detail__draw-hint">
                         使用右侧绘图工具在地图上绘制地块边界
                       </div>
                     )}
@@ -614,7 +635,7 @@ function FarmDetail() {
                       {(fields, operation) => (
                         <>
                           {fields.map((field) => (
-                            <Row key={field.key} gutter={12} align="middle" style={{ marginBottom: 8 }}>
+                            <Row key={field.key} gutter={12} align="middle" className="farm-detail__crop-row">
                               <Col flex="auto">
                                 <Row gutter={8}>
                                   <Col span={14}>
@@ -637,7 +658,7 @@ function FarmDetail() {
                                         { type: 'number', min: 0.01, message: '面积必须大于0' },
                                       ]}
                                     >
-                                      <InputNumber style={{ width: '100%' }} min={0} placeholder="面积（亩）" />
+                                      <InputNumber className="full-width" min={0} placeholder="面积（亩）" />
                                     </Form.Item>
                                   </Col>
                                   <Col span={2}>
@@ -669,7 +690,7 @@ function FarmDetail() {
                       <Input placeholder="请输入种植员姓名" />
                     </Form.Item>
                     <Form.Item name="plantingDate" label="种植时间">
-                      <DatePicker style={{ width: '100%' }} />
+                      <DatePicker className="full-width" />
                     </Form.Item>
                   </>
                 ),
@@ -683,17 +704,17 @@ function FarmDetail() {
                       <Input placeholder="请输入确权证号" />
                     </Form.Item>
                     <Form.Item name="landCertArea" label="确权面积（亩）">
-                      <InputNumber style={{ width: '100%' }} min={0} placeholder="0" />
+                      <InputNumber className="full-width" min={0} placeholder="0" />
                     </Form.Item>
                     <Row gutter={16}>
                       <Col span={12}>
                         <Form.Item name="landCertStart" label="确权期限起">
-                          <DatePicker style={{ width: '100%' }} />
+                          <DatePicker className="full-width" />
                         </Form.Item>
                       </Col>
                       <Col span={12}>
                         <Form.Item name="landCertEnd" label="确权期限止">
-                          <DatePicker style={{ width: '100%' }} />
+                          <DatePicker className="full-width" />
                         </Form.Item>
                       </Col>
                     </Row>
@@ -715,11 +736,11 @@ function FarmDetail() {
         destroyOnClose
         centered
       >
-        <div style={{ position: 'relative', height: '100%' }}>
+        <div className="farm-detail__expanded-map">
           <MapContainer
             center={drawnCoords.length > 0 ? getPolygonCenter(drawnCoords) : mapCenter}
             zoom={drawnCoords.length > 0 ? 16 : 14}
-            style={{ height: '100%', width: '100%' }}
+            className="farm-detail__map-fill"
             scrollWheelZoom
           >
             <MapController
@@ -736,7 +757,7 @@ function FarmDetail() {
           </MapContainer>
           <Button
             icon={<CompressOutlined />}
-            style={{ position: 'absolute', bottom: 16, left: 16, zIndex: 1000 }}
+            className="farm-detail__compress-btn"
             onClick={() => setMapExpanded(false)}
           >
             收起

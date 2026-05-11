@@ -27,8 +27,8 @@ function RegisterPage() {
   return (
     <div className="register-page">
       <Card>
-        <div style={{ textAlign: 'center', marginBottom: 24 }}>
-          <Title level={2} style={{ marginBottom: 4 }}>农业平台</Title>
+        <div className="register-page__header">
+          <Title level={2} className="register-page__title">农业平台</Title>
           <Text type="secondary">注册</Text>
         </div>
 
@@ -36,7 +36,7 @@ function RegisterPage() {
           onFinish={handleFinish}
           size="large"
           autoComplete="off"
-          style={{ width: 360, margin: '0 auto' }}
+          className="register-page__form"
         >
           <Form.Item label="身份">
             <Radio.Group
@@ -71,7 +71,7 @@ function RegisterPage() {
           </Form.Item>
         </Form>
 
-        <div style={{ textAlign: 'center' }}>
+        <div className="register-page__footer">
           <Text type="secondary">
             已有账号？
             <Button type="link" onClick={() => navigate('/login')}>

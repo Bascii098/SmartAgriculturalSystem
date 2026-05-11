@@ -97,7 +97,7 @@ function GIS() {
                   value: c.area,
                 })),
                 label: { formatter: '{b}\n{d}%' },
-                color: ['#52c41a', '#1890ff', '#faad14', '#eb2f96', '#722ed1'],
+                color: ['#4caf50', '#8bc34a', '#ffa726', '#795548', '#29b6f6'],
               },
             ],
           }
@@ -176,7 +176,6 @@ function GIS() {
 
       <div className="gis-search">
         <AutoComplete
-          style={{ width: 280 }}
           options={searchOptions}
           onSelect={handleSearchSelect}
           value={searchText}
@@ -193,7 +192,7 @@ function GIS() {
 
       <div className={`gis-panel ${panelOpen ? 'gis-panel--open' : ''}`}>
         <div className="gis-panel__header">
-          <Title level={4} style={{ margin: 0 }}>
+          <Title level={4} className="gis-panel__title">
             {selectedPlot?.name ?? ''}
           </Title>
           <Button
@@ -204,7 +203,7 @@ function GIS() {
         </div>
         {selectedPlot ? (
           <div className="gis-panel__body">
-            <Descriptions column={1} size="small" style={{ marginBottom: 16 }}>
+            <Descriptions column={1} size="small" className="gis-panel__desc">
               <Descriptions.Item label="总面积">
                 {selectedPlot.area} 亩
               </Descriptions.Item>
@@ -225,29 +224,29 @@ function GIS() {
             ))}
 
             {pieOption && (
-              <div style={{ marginTop: 16 }}>
+              <div className="gis-panel__chart">
                 <Title level={5}>作物面积占比</Title>
-                <ReactECharts style={{ height: 220 }} option={pieOption} />
+                <ReactECharts className="gis-panel__chart-body" option={pieOption} />
               </div>
             )}
 
-            <div className="gis-panel__weather" style={{ marginTop: 16 }}>
+            <div className="gis-panel__weather">
               {weather ? (
-                <div style={{ display: 'flex', justifyContent: 'space-around', textAlign: 'center' }}>
+                <div className="gis-panel__weather-grid">
                   <div>
-                    <Text type="secondary" style={{ fontSize: 12 }}>温度</Text>
+                    <Text type="secondary" className="gis-panel__weather-label">温度</Text>
                     <div><Text strong>{weather.temperature}°C</Text></div>
                   </div>
                   <div>
-                    <Text type="secondary" style={{ fontSize: 12 }}>天气</Text>
+                    <Text type="secondary" className="gis-panel__weather-label">天气</Text>
                     <div><Text strong>{weather.condition}</Text></div>
                   </div>
                   <div>
-                    <Text type="secondary" style={{ fontSize: 12 }}>湿度</Text>
+                    <Text type="secondary" className="gis-panel__weather-label">湿度</Text>
                     <div><Text strong>{weather.humidity}%</Text></div>
                   </div>
                   <div>
-                    <Text type="secondary" style={{ fontSize: 12 }}>风力</Text>
+                    <Text type="secondary" className="gis-panel__weather-label">风力</Text>
                     <div><Text strong>{weather.windSpeed}</Text></div>
                   </div>
                 </div>
@@ -258,12 +257,7 @@ function GIS() {
           </div>
         ) : (
           <div
-            className="gis-panel__body"
-            style={{
-              display: 'flex',
-              alignItems: 'center',
-              justifyContent: 'center',
-            }}
+            className="gis-panel__body gis-panel__empty"
           >
             <Empty description="请点击地块或搜索" />
           </div>

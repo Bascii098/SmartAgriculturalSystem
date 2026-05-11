@@ -88,7 +88,7 @@ function UploadField({
         {!disabled && !value && (
           <div>
             <PlusOutlined />
-            <div style={{ marginTop: 8 }}>上传</div>
+            <div className="upload-text">上传</div>
           </div>
         )}
       </Upload>
@@ -153,7 +153,7 @@ function GrowerFields({ disabled }: { disabled: boolean }) {
         <InputNumber
           min={0}
           disabled={disabled}
-          style={{ width: '100%' }}
+          className="full-width"
         />
       </Form.Item>
       <Form.Item
@@ -389,7 +389,7 @@ function BasicInfo() {
   // 未登录状态
   if (!isLoggedIn || !identity) {
     return (
-      <div style={{ padding: 24, textAlign: 'center' }}>
+      <div className="empty-state">
         <Space>
           <Text type="secondary">请先</Text>
           <Link to="/login">登录</Link>
@@ -403,7 +403,7 @@ function BasicInfo() {
 
   return (
     <div className="basic-info-card">
-      <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 16 }}>
+      <div className="basic-info-card__top-bar">
         <span className="basic-info-card__identity">
           {identity === 'grower' ? '种植户' : '种植合作社'}
         </span>

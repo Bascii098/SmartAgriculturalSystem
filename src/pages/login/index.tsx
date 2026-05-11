@@ -38,8 +38,8 @@ function LoginPage() {
   return (
     <div className="login-page">
       <Card>
-        <div style={{ textAlign: 'center', marginBottom: 24 }}>
-          <Title level={2} style={{ marginBottom: 4 }}>农业平台</Title>
+        <div className="login-page__header">
+          <Title level={2} className="login-page__title">农业平台</Title>
           <Text type="secondary">登录</Text>
         </div>
         <Form<FormValues>
@@ -65,7 +65,7 @@ function LoginPage() {
             </Button>
           </Form.Item>
         </Form>
-        <div style={{ textAlign: 'center' }}>
+        <div className="login-page__footer">
           <Text type="secondary">
             还没有账号？
             <Button type="link" onClick={() => navigate('/register')}>
@@ -73,8 +73,8 @@ function LoginPage() {
             </Button>
           </Text>
         </div>
-        <div style={{ textAlign: 'center', marginTop: 8 }}>
-          <Text style={{ fontSize: 12, color: '#999' }}>
+        <div className="login-page__test-hint">
+          <Text>
             测试账号：admin / admin123（种植户）
           </Text>
         </div>

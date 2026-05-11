@@ -43,10 +43,20 @@
   flex: 1;
   min-width: 0;
   background: transparent !important;
+  border-bottom: none !important;
 
   .ant-menu-item {
     border-radius: var(--radius-md);
     margin: 0 2px;
+  }
+}
+
+.user-dropdown {
+  cursor: pointer;
+  padding: 0 24px;
+
+  .ant-avatar {
+    background-color: var(--color-primary);
   }
 }
 
@@ -95,12 +105,57 @@
   }
 }
 
-.login-page .ant-card {
-  width: 420px;
+.login-page {
+  &__header {
+    text-align: center;
+    margin-bottom: 24px;
+  }
+
+  &__title {
+    margin-bottom: 4px;
+  }
+
+  &__footer {
+    text-align: center;
+  }
+
+  &__test-hint {
+    text-align: center;
+    margin-top: 8px;
+
+    .ant-typography {
+      font-size: 12px;
+      color: var(--color-text-secondary);
+    }
+  }
+
+  .ant-card {
+    width: 420px;
+  }
 }
 
-.register-page .ant-card {
-  width: 640px;
+.register-page {
+  &__header {
+    text-align: center;
+    margin-bottom: 24px;
+  }
+
+  &__title {
+    margin-bottom: 4px;
+  }
+
+  &__form {
+    width: 360px;
+    margin: 0 auto;
+  }
+
+  &__footer {
+    text-align: center;
+  }
+
+  .ant-card {
+    width: 640px;
+  }
 }
 
 // ========================================
@@ -373,6 +428,11 @@
 
   .growers-sider {
     border-right: 1px solid var(--color-border);
+
+    .ant-menu {
+      height: 100%;
+      border-right: 0;
+    }
   }
 
   .growers-content {
@@ -415,6 +475,21 @@
   margin-top: 8px;
 }
 
+.basic-info-card__top-bar {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 16px;
+}
+
+.upload-text {
+  margin-top: 8px;
+}
+
+.full-width {
+  width: 100%;
+}
+
 // ========================================
 // 顶部信息栏
 // ========================================
@@ -424,6 +499,56 @@
 
 .header-time {
   font-size: 14px;
+}
+
+// ========================================
+// 空状态
+// ========================================
+.empty-state {
+  padding: 24px;
+  text-align: center;
+}
+
+// ========================================
+// GIS 侧边面板
+// ========================================
+.gis-panel__weather-grid {
+  display: flex;
+  justify-content: space-around;
+  text-align: center;
+}
+
+.gis-panel__weather-item {
+  .ant-typography {
+    font-size: 12px;
+  }
+}
+
+.gis-panel__chart {
+  margin-top: 16px;
+}
+
+.gis-panel__chart-title {
+  margin-bottom: 12px;
+}
+
+.gis-panel__empty {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.gis-panel__crop-item {
+  display: flex;
+  justify-content: space-between;
+  padding: 8px 0;
+  border-bottom: 1px solid var(--color-border);
+}
+
+.gis-search {
+  .ant-auto-complete {
+    width: 280px;
+  }
 }
 
 // ========================================
@@ -464,6 +589,22 @@
     align-items: center;
     margin-bottom: var(--space-lg);
   }
+
+  .farms-search-input {
+    width: 280px;
+  }
+
+  .farms-empty {
+    margin-top: 80px;
+  }
+}
+
+.farm-modal-form {
+  margin-top: 16px;
+}
+
+.dashboard-card__title-icon {
+  margin-right: 8px;
 }
 
 .farm-card {
@@ -537,7 +678,7 @@
   &__plots-list {
     display: flex;
     flex-direction: column;
-    gap: var(--space-sm);
+    gap: 12px;
     overflow-y: auto;
     flex: 1;
     min-height: 0;
@@ -562,6 +703,78 @@
     overflow: hidden;
     height: 100%;
   }
+
+  &__draw-preview {
+    position: relative;
+
+    .farm-detail__draw-map {
+      height: 300px;
+      border-radius: var(--radius-md);
+      overflow: hidden;
+    }
+
+    .farm-detail__expand-btn {
+      position: absolute;
+      bottom: 8px;
+      left: 8px;
+      z-index: 1000;
+    }
+  }
+
+  &__draw-hint {
+    margin-top: 8px;
+    font-size: 12px;
+    color: var(--color-text-secondary);
+  }
+
+  &__expanded-map {
+    position: relative;
+    height: 100%;
+  }
+
+  &__compress-btn {
+    position: absolute;
+    bottom: 16px;
+    left: 16px;
+    z-index: 1000;
+  }
+
+  &__pagination {
+    margin-top: 12px;
+    text-align: center;
+  }
+
+  &__col-plots {
+    display: flex;
+    flex-direction: column;
+    min-height: 0;
+  }
+
+  &__col-map {
+    display: flex;
+    flex-direction: column;
+    min-height: 0;
+  }
+
+  &__spin-wrapper {
+    flex: 1;
+    min-height: 0;
+    display: flex;
+    flex-direction: column;
+  }
+
+  &__map-fill {
+    height: 100%;
+    width: 100%;
+  }
+
+  &__crop-row {
+    margin-bottom: 8px;
+  }
+}
+
+.plot-tag {
+  font-size: 11px;
 }
 
 .plot-card {

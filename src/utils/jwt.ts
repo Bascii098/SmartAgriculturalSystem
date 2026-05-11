@@ -14,9 +14,14 @@ function base64urlDecode(str: string): string {
   return decodeURIComponent(escape(atob(str)))
 }
 
-/** 解析 JWT Token，失败返回 null */
+/** 解析 Token，兼容后端单段 base64 和标准 JWT 格式 */
 export function parseToken(token: string): TokenPayload | null {
   try {
+    // 后端生成的单段 base64 token
+    if (!token.includes('.')) {
+      return JSON.parse(atob(token)) as TokenPayload
+    }
+    // 标准 JWT 三段格式
     const parts = token.split('.')
     if (parts.length !== 3) return null
     const payload = JSON.parse(base64urlDecode(parts[1])) as TokenPayload

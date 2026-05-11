@@ -42,7 +42,6 @@ function Growers() {
           selectedKeys={[selectedKey]}
           items={subMenuItems}
           onClick={handleMenuClick}
-          style={{ height: '100%', borderRight: 0 }}
         />
       </Sider>
       <Content className="growers-content">
