@@ -23,7 +23,10 @@ function Growers() {
     ? '/growers/handover'
     : '/growers/basic-info'
 
+  const isBasicInfo = location.pathname.startsWith('/growers/basic-info')
+
   const handleMenuClick: MenuProps['onClick'] = (info) => {
+    if (isEditing) dispatch(setEditing(false))
     navigate(info.key)
   }
 
@@ -43,15 +46,17 @@ function Growers() {
         />
       </Sider>
       <Content className="growers-content">
-        <div className="growers-toolbar">
-          <Button
-            type="primary"
-            icon={isEditing ? <SaveOutlined /> : <EditOutlined />}
-            onClick={handleEditToggle}
-          >
-            {isEditing ? '保存' : '修改'}
-          </Button>
-        </div>
+        {isBasicInfo && (
+          <div className="growers-toolbar">
+            <Button
+              type="primary"
+              icon={isEditing ? <SaveOutlined /> : <EditOutlined />}
+              onClick={handleEditToggle}
+            >
+              {isEditing ? '保存' : '修改'}
+            </Button>
+          </div>
+        )}
         <Outlet />
       </Content>
     </Layout>

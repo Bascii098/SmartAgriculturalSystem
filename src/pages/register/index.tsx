@@ -1,7 +1,7 @@
 import { useState } from 'react'
 import { Card, Form, Input, Button, Typography, message, Radio } from 'antd'
 import { useNavigate } from 'react-router-dom'
-import { registerUser } from '@/store/authSlice'
+import { registerApi } from '@/services/api'
 import type { Identity } from '@/types/grower'
 
 const { Title, Text } = Typography
@@ -11,16 +11,14 @@ function RegisterPage() {
   const [loading, setLoading] = useState(false)
   const navigate = useNavigate()
 
-  const handleFinish = (values: { username: string; password: string }) => {
+  const handleFinish = async (values: { username: string; password: string }) => {
     setLoading(true)
     try {
-      const success = registerUser(values.username, values.password, identity)
-      if (success) {
-        message.success('注册成功，请登录')
-        navigate('/login')
-      } else {
-        message.error('用户名已存在')
-      }
+      await registerApi(values.username, values.password, identity)
+      message.success('注册成功，请登录')
+      navigate('/login')
+    } catch {
+      message.error('注册失败，用户名可能已存在')
     } finally {
       setLoading(false)
     }

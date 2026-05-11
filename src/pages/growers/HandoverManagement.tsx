@@ -15,10 +15,10 @@ import {
   Space,
 } from 'antd'
 import { useAppSelector } from '@/store/hooks'
-import { getAllUsers } from '@/store/authSlice'
 import {
   getPlotsApi,
   getHandoversApi,
+  getGrowersApi,
   createHandoverApi,
   confirmHandoverApi,
   rejectHandoverApi,
@@ -51,16 +51,19 @@ function HandoverManagement() {
   const [form] = Form.useForm()
   const [plots, setPlots] = useState<PlotFeature[]>([])
   const [handoverRecords, setHandoverRecords] = useState<HandoverRecord[]>([])
+  const [users, setUsers] = useState<{ username: string; identity: string }[]>([])
 
   // 从后端拉取数据
   const fetchData = async () => {
     try {
-      const [plotsData, handoversData] = await Promise.all([
+      const [plotsData, handoversData, usersData] = await Promise.all([
         getPlotsApi(),
         getHandoversApi(),
+        getGrowersApi(),
       ])
       setPlots(plotsData)
       setHandoverRecords(handoversData)
+      setUsers(usersData)
     } catch {
       // 静默处理
     }
@@ -94,10 +97,10 @@ function HandoverManagement() {
 
   // 可选的接收方
   const receiverOptions = useMemo(() => {
-    return getAllUsers()
+    return users
       .filter((u) => u.username !== username && u.identity === 'grower')
       .map((u) => ({ label: `${u.username} (种植户)`, value: u.username }))
-  }, [username])
+  }, [users, username])
 
   // 可选的发起地块
   const plotOptions = useMemo(

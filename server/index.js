@@ -348,11 +348,11 @@ app.put('/api/plots/:id', async (req, res) => {
     await pool.query(
       `UPDATE plots SET name=?, area=?, soil_type=?, plot_shape=?, land_nature=?,
         irrigation_facility=?, address=?, planter=?, planting_date=?, land_cert_number=?,
-        land_cert_area=?, land_cert_start=?, land_cert_end=?, color=?
+        land_cert_area=?, land_cert_start=?, land_cert_end=?, color=COALESCE(?, color)
        WHERE id=?`,
       [d.name, d.area, d.soilType, d.plotShape, d.landNature, d.irrigationFacility || false,
         d.address, d.planter, d.plantingDate, d.landCertNumber, d.landCertArea,
-        d.landCertStart, d.landCertEnd, d.color, req.params.id],
+        d.landCertStart, d.landCertEnd, d.color || null, req.params.id],
     )
 
     // 更新作物：先删后插

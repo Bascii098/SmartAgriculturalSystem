@@ -1,6 +1,5 @@
 import { createSlice, type PayloadAction } from '@reduxjs/toolkit'
 import type { Identity } from '@/types/grower'
-import { generateToken } from '@/utils/jwt'
 
 interface AuthState {
   isLoggedIn: boolean
@@ -12,57 +11,6 @@ const initialState: AuthState = {
   isLoggedIn: false,
   identity: null,
   username: '',
-}
-
-// 模拟后端数据库：存储注册用户
-interface UserRecord {
-  password: string
-  identity: Identity
-}
-
-const userDatabase = new Map<string, UserRecord>()
-
-// 预置一个测试账号
-userDatabase.set('admin', { password: 'admin123', identity: 'grower' })
-
-/**
- * 校验用户名密码，成功返回身份类型，失败返回 null
- */
-export function checkCredentials(username: string, password: string): Identity | null {
-  const record = userDatabase.get(username)
-  if (!record || record.password !== password) {
-    return null
-  }
-  return record.identity
-}
-
-/**
- * 登录校验：成功返回 Token（含用户信息），失败返回 null
- */
-export function loginWithToken(username: string, password: string): string | null {
-  const record = userDatabase.get(username)
-  if (!record || record.password !== password) return null
-  return generateToken(username, record.identity)
-}
-
-/**
- * 注册新用户，成功返回 true，用户名已存在返回 false
- */
-export function registerUser(username: string, password: string, identity: Identity): boolean {
-  if (userDatabase.has(username)) {
-    return false
-  }
-  userDatabase.set(username, { password, identity })
-  return true
-}
-
-/** 获取所有已注册用户列表 */
-export function getAllUsers(): { username: string; identity: Identity }[] {
-  const users: { username: string; identity: Identity }[] = []
-  userDatabase.forEach((record, username) => {
-    users.push({ username, identity: record.identity })
-  })
-  return users
 }
 
 const authSlice = createSlice({

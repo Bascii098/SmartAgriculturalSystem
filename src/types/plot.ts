@@ -17,6 +17,7 @@ export interface PlotFormData {
   area: number
   coordinates: [number, number][]
   center: [number, number]
+  color?: string
   soilType?: string
   plotShape?: string
   landNature?: string

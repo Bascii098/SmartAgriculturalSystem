@@ -9,6 +9,7 @@ import {
   Col,
   Spin,
   Drawer,
+  Modal,
   Form,
   Input,
   InputNumber,
@@ -17,6 +18,7 @@ import {
   Switch,
   DatePicker,
   Popconfirm,
+  ColorPicker,
   message,
   Tag,
 } from 'antd'
@@ -27,6 +29,8 @@ import {
   DeleteOutlined,
   EnvironmentOutlined,
   AimOutlined,
+  ExpandOutlined,
+  CompressOutlined,
 } from '@ant-design/icons'
 import { MapContainer, TileLayer, Polygon, Popup, useMap } from 'react-leaflet'
 import L from 'leaflet'
@@ -46,15 +50,27 @@ import type { PlotFeature, PlotFormData } from '@/types/plot'
 import type { Dayjs } from 'dayjs'
 import dayjs from 'dayjs'
 
-interface PlotFormValues extends Omit<PlotFormData, 'plantingDate' | 'landCertStart' | 'landCertEnd'> {
+interface PlotFormValues extends Omit<PlotFormData, 'plantingDate' | 'landCertStart' | 'landCertEnd' | 'color'> {
   plantingDate?: Dayjs
   landCertStart?: Dayjs
   landCertEnd?: Dayjs
+  color?: string | { toHexString: () => string }
 }
 
 const SOIL_TYPES = ['永久基本农田', '一般农田', '高标准农田', '其他']
 const PLOT_SHAPES = ['长方形', '正方形', '不规则']
 const LAND_NATURES = ['旱地', '水田']
+
+const PLOT_COLORS = [
+  '#4caf50', '#2196f3', '#ff9800', '#e91e63', '#9c27b0',
+  '#00bcd4', '#ff5722', '#795548', '#607d8b', '#3f51b5',
+  '#8bc34a', '#ffc107', '#f44336', '#009688', '#673ab7',
+]
+
+function getNextColor(existingColors: (string | undefined)[]): string {
+  const used = new Set(existingColors.filter(Boolean))
+  return PLOT_COLORS.find((c) => !used.has(c)) || PLOT_COLORS[0]
+}
 
 function getPolygonCenter(coords: [number, number][]): [number, number] {
   if (coords.length === 0) return [0, 0]
@@ -152,7 +168,7 @@ function MapController({
     }
   }, [map, enableDraw, onCoordsChange])
 
-  // 编辑时在地图上显示已有边界
+  // 编辑时在地图上显示已有边界并飞到该位置
   useEffect(() => {
     if (!enableDraw) return
     drawnItemsRef.current.clearLayers()
@@ -163,8 +179,9 @@ function MapController({
         weight: 2,
       })
       drawnItemsRef.current.addLayer(polygon)
+      map.fitBounds(polygon.getBounds(), { padding: [30, 30], maxZoom: 16 })
     }
-  }, [drawnCoords, enableDraw])
+  }, [drawnCoords, enableDraw, map])
 
   return null
 }
@@ -179,6 +196,7 @@ function FarmDetail() {
   const [editingPlot, setEditingPlot] = useState<PlotFeature | null>(null)
   const [selectedPlotId, setSelectedPlotId] = useState<string | null>(null)
   const [drawnCoords, setDrawnCoords] = useState<[number, number][]>([])
+  const [mapExpanded, setMapExpanded] = useState(false)
   const [form] = Form.useForm<PlotFormValues>()
 
   const mapRef = useRef<L.Map | null>(null)
@@ -230,6 +248,7 @@ function FarmDetail() {
       crops: plot.crops,
       coordinates: plot.coordinates,
       center: plot.center,
+      color: plot.color || '#4caf50',
       planter: plot.planter,
       plantingDate: plot.plantingDate ? dayjs(plot.plantingDate) : undefined,
       landCertNumber: plot.landCertNumber,
@@ -252,17 +271,30 @@ function FarmDetail() {
       return
     }
     const values = await form.validateFields()
+    const plotArea = values.area ?? 0
+    const crops = values.crops ?? []
+    const cropsTotal = crops.reduce((sum, c) => sum + (c?.area ?? 0), 0)
+    if (cropsTotal > plotArea) {
+      message.warning(`作物总面积（${cropsTotal}亩）不能超过地块面积（${plotArea}亩）`)
+      return
+    }
+    const colorValue = typeof values.color === 'string'
+      ? values.color
+      : values.color?.toHexString?.() ?? undefined
     const submitData: PlotFormData = {
       name: values.name,
       area: values.area ?? 0,
       coordinates: drawnCoords,
       center: getPolygonCenter(drawnCoords),
+      color: editingPlot
+        ? (colorValue || editingPlot.color || getNextColor(plots.map((p) => p.color)))
+        : (colorValue || getNextColor(plots.map((p) => p.color))),
       soilType: values.soilType,
       plotShape: values.plotShape,
       landNature: values.landNature,
       irrigationFacility: values.irrigationFacility ?? false,
       address: values.address,
-      crops: values.crops ?? [],
+      crops,
       planter: values.planter,
       plantingDate: values.plantingDate?.format('YYYY-MM-DD') ?? '',
       landCertNumber: values.landCertNumber,
@@ -460,7 +492,7 @@ function FarmDetail() {
         title={editingPlot ? '编辑地块' : '新建地块'}
         open={drawerOpen}
         onClose={() => setDrawerOpen(false)}
-        width={600}
+        width={720}
         extra={
           <Button type="primary" onClick={handleDrawerSubmit}>
             保存
@@ -506,14 +538,22 @@ function FarmDetail() {
                       </Col>
                     </Row>
                     <Row gutter={16}>
-                      <Col span={12}>
+                      <Col span={8}>
                         <Form.Item name="area" label="面积（亩）" rules={[{ required: true }]}>
                           <InputNumber style={{ width: '100%' }} min={0} placeholder="0" />
                         </Form.Item>
                       </Col>
-                      <Col span={12}>
+                      <Col span={10}>
                         <Form.Item name="address" label="地址">
                           <Input placeholder="省/市/县/镇/村" />
+                        </Form.Item>
+                      </Col>
+                      <Col span={6}>
+                        <Form.Item name="color" label="地块颜色">
+                          <ColorPicker
+                            format="hex"
+                            presets={[{ label: '推荐颜色', colors: PLOT_COLORS }]}
+                          />
                         </Form.Item>
                       </Col>
                     </Row>
@@ -525,25 +565,33 @@ function FarmDetail() {
                 label: '地块位置（在地图上绘制）',
                 children: (
                   <div>
-                    <div style={{ height: 300, borderRadius: 8, overflow: 'hidden' }}>
-                      <MapContainer
-                        center={mapCenter}
-                        zoom={14}
-                        style={{ height: '100%', width: '100%' }}
-                        scrollWheelZoom
-                      >
-                        <MapController
-                          onMapReady={() => {}}
-                          drawnCoords={drawnCoords}
-                          onCoordsChange={handleCoordsChange}
-                          enableDraw
-                        />
-                        <TileLayer
-                          url="https://webst0{s}.is.autonavi.com/appmaptile?style=6&x={x}&y={y}&z={z}"
-                          subdomains={['1', '2', '3', '4']}
-                          maxZoom={18}
-                        />
-                      </MapContainer>
+                    <div style={{ position: 'relative' }}>
+                      <div style={{ height: 300, borderRadius: 8, overflow: 'hidden' }}>
+                        <MapContainer
+                          center={drawnCoords.length > 0 ? getPolygonCenter(drawnCoords) : mapCenter}
+                          zoom={drawnCoords.length > 0 ? 16 : 14}
+                          style={{ height: '100%', width: '100%' }}
+                          scrollWheelZoom
+                        >
+                          <MapController
+                            onMapReady={() => {}}
+                            drawnCoords={drawnCoords}
+                            onCoordsChange={handleCoordsChange}
+                            enableDraw
+                          />
+                          <TileLayer
+                            url="https://webst0{s}.is.autonavi.com/appmaptile?style=6&x={x}&y={y}&z={z}"
+                            subdomains={['1', '2', '3', '4']}
+                            maxZoom={18}
+                          />
+                        </MapContainer>
+                      </div>
+                      <Button
+                        icon={<ExpandOutlined />}
+                        size="small"
+                        style={{ position: 'absolute', bottom: 8, left: 8, zIndex: 1000 }}
+                        onClick={() => setMapExpanded(true)}
+                      />
                     </div>
                     {drawnCoords.length > 0 ? (
                       <div style={{ marginTop: 8, fontSize: 12, color: '#999' }}>
@@ -562,6 +610,61 @@ function FarmDetail() {
                 label: '种植信息',
                 children: (
                   <>
+                    <Form.List name="crops">
+                      {(fields, operation) => (
+                        <>
+                          {fields.map((field) => (
+                            <Row key={field.key} gutter={12} align="middle" style={{ marginBottom: 8 }}>
+                              <Col flex="auto">
+                                <Row gutter={8}>
+                                  <Col span={14}>
+                                    <Form.Item
+                                      {...field}
+                                      name={[field.name, 'name']}
+                                      noStyle
+                                      rules={[{ required: true, message: '请输入作物名称' }]}
+                                    >
+                                      <Input placeholder="作物名称" />
+                                    </Form.Item>
+                                  </Col>
+                                  <Col span={8}>
+                                    <Form.Item
+                                      {...field}
+                                      name={[field.name, 'area']}
+                                      noStyle
+                                      rules={[
+                                        { required: true, message: '请输入面积' },
+                                        { type: 'number', min: 0.01, message: '面积必须大于0' },
+                                      ]}
+                                    >
+                                      <InputNumber style={{ width: '100%' }} min={0} placeholder="面积（亩）" />
+                                    </Form.Item>
+                                  </Col>
+                                  <Col span={2}>
+                                    <Button
+                                      type="text"
+                                      danger
+                                      icon={<DeleteOutlined />}
+                                      onClick={() => operation.remove(field.name)}
+                                    />
+                                  </Col>
+                                </Row>
+                              </Col>
+                            </Row>
+                          ))}
+                          <Form.Item>
+                            <Button
+                              type="dashed"
+                              block
+                              icon={<PlusOutlined />}
+                              onClick={() => operation.add({ name: '', area: 0 })}
+                            >
+                              添加作物
+                            </Button>
+                          </Form.Item>
+                        </>
+                      )}
+                    </Form.List>
                     <Form.Item name="planter" label="种植员">
                       <Input placeholder="请输入种植员姓名" />
                     </Form.Item>
@@ -601,6 +704,45 @@ function FarmDetail() {
           />
         </Form>
       </Drawer>
+
+      {/* 放大地图浮窗 */}
+      <Modal
+        open={mapExpanded}
+        onCancel={() => setMapExpanded(false)}
+        footer={null}
+        width="85vw"
+        styles={{ body: { padding: 0, height: '75vh' } }}
+        destroyOnClose
+        centered
+      >
+        <div style={{ position: 'relative', height: '100%' }}>
+          <MapContainer
+            center={drawnCoords.length > 0 ? getPolygonCenter(drawnCoords) : mapCenter}
+            zoom={drawnCoords.length > 0 ? 16 : 14}
+            style={{ height: '100%', width: '100%' }}
+            scrollWheelZoom
+          >
+            <MapController
+              onMapReady={() => {}}
+              drawnCoords={drawnCoords}
+              onCoordsChange={handleCoordsChange}
+              enableDraw
+            />
+            <TileLayer
+              url="https://webst0{s}.is.autonavi.com/appmaptile?style=6&x={x}&y={y}&z={z}"
+              subdomains={['1', '2', '3', '4']}
+              maxZoom={18}
+            />
+          </MapContainer>
+          <Button
+            icon={<CompressOutlined />}
+            style={{ position: 'absolute', bottom: 16, left: 16, zIndex: 1000 }}
+            onClick={() => setMapExpanded(false)}
+          >
+            收起
+          </Button>
+        </div>
+      </Modal>
     </div>
   )
 }
