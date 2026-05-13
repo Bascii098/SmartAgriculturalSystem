@@ -4,7 +4,7 @@ import { Form, Input, InputNumber, Upload, Image, Typography, message, Space, To
 import { PlusOutlined } from '@ant-design/icons'
 import type { UploadFile, UploadProps } from 'antd'
 import { useAppDispatch, useAppSelector } from '@/store/hooks'
-import { setBasicInfo, setEditing } from '@/store/growerSlice'
+import { setEditing } from '@/store/growerSlice'
 import { getGrowerApi, updateGrowerApi, changePasswordApi } from '@/services/api'
 import type { GrowerFormData } from '@/types/grower'
 
@@ -335,7 +335,7 @@ function BasicInfo() {
   const isLoggedIn = useAppSelector((state) => state.auth.isLoggedIn)
   const username = useAppSelector((state) => state.auth.username)
   const isEditing = useAppSelector((state) => state.grower.isEditing)
-  const basicInfo = useAppSelector((state) => state.grower.basicInfo)
+  const [basicInfo, setBasicInfo] = useState<GrowerFormData | null>(null)
 
   const [form] = Form.useForm()
   const [pwdModalOpen, setPwdModalOpen] = useState(false)
@@ -346,10 +346,10 @@ function BasicInfo() {
     if (!isLoggedIn || !username) return
     getGrowerApi(username)
       .then((data) => {
-        dispatch(setBasicInfo(data as unknown as GrowerFormData))
+        setBasicInfo(data as unknown as GrowerFormData)
       })
       .catch(() => {})
-  }, [isLoggedIn, username, dispatch])
+  }, [isLoggedIn, username])
 
   // 监听 isEditing 从 true → false 时触发保存
   useEffect(() => {
@@ -364,7 +364,7 @@ function BasicInfo() {
             // 从后端重新拉取，确保数据一致
             if (username) {
               const data = await getGrowerApi(username)
-              dispatch(setBasicInfo(data as unknown as GrowerFormData))
+              setBasicInfo(data as unknown as GrowerFormData)
             }
             message.success('保存成功')
           } catch {

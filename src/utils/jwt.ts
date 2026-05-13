@@ -3,8 +3,8 @@ import type { Identity } from '@/types/grower'
 export interface TokenPayload {
   sub: string       // username
   identity: Identity
-  iat: number       // issued at (seconds)
-  exp: number       // expiration (seconds)
+  iat?: number      // issued at (milliseconds)
+  exp: number       // expiration (milliseconds)
 }
 
 // Base64URL 解码
@@ -35,5 +35,5 @@ export function parseToken(token: string): TokenPayload | null {
 export function isTokenExpired(token: string): boolean {
   const payload = parseToken(token)
   if (!payload) return true
-  return payload.exp * 1000 < Date.now()
+  return payload.exp < Date.now()
 }

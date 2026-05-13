@@ -3,6 +3,17 @@ import type { Identity } from '@/types/grower'
 import type { PlotFeature, PlotFormData } from '@/types/plot'
 import type { HandoverRecord } from '@/types/grower'
 import type { Farm, FarmFormData } from '@/types/farm'
+import type {
+  TaskConfigGrouped,
+  TaskFieldConfig,
+  WeatherExtended,
+  DisasterWarning,
+  PlantingPlan,
+  PlanTask,
+  ImplementationFormData,
+  ImplementationRecord,
+  ImplementationFarmGroup,
+} from '@/types/production'
 
 // 通用响应格式
 interface ApiResponse<T> {
@@ -19,7 +30,7 @@ async function request<T>(
 ): Promise<T> {
   const res =
     method === 'get'
-      ? await http.get<ApiResponse<T>>(url)
+      ? await http.get<ApiResponse<T>>(url, { params: body })
       : method === 'post'
         ? await http.post<ApiResponse<T>>(url, body)
         : await http.put<ApiResponse<T>>(url, body)
@@ -159,3 +170,35 @@ export async function updatePlotApi(id: string, data: Partial<PlotFormData>) {
 export async function deletePlotApi(id: string) {
   return request<null>('post', `/api/plots/${id}/delete`)
 }
+
+// ==================== Production ====================
+
+// 任务配置
+export const getTaskConfigApi = () => request<TaskConfigGrouped>('get', '/api/task-config')
+export const getTaskConfigByStageApi = (stage: string) => request<TaskFieldConfig[]>('get', `/api/task-config/${stage}`)
+export const updateTaskConfigApi = (stage: string, fields: TaskFieldConfig[]) => request<null>('put', `/api/task-config/${stage}`, { fields })
+
+// 天气扩展
+export const getWeatherExtendedApi = () => request<{ weather: WeatherExtended; warnings: DisasterWarning[] }>('get', '/api/weather/extended')
+export const getWeatherWarningsApi = () => request<DisasterWarning[]>('get', '/api/weather/warnings')
+
+// 种植计划（CRUD）
+export const getPlansApi = (farmId?: string) => request<PlantingPlan[]>('get', '/api/plans', farmId ? { farmId } : undefined)
+export const getPlanByIdApi = (id: number) => request<PlantingPlan>('get', `/api/plans/${id}`)
+export const createPlanApi = (data: Partial<PlantingPlan>) => request<PlantingPlan>('post', '/api/plans', data)
+export const updatePlanApi = (id: number, data: Partial<PlantingPlan>) => request<null>('put', `/api/plans/${id}`, data)
+export const deletePlanApi = (id: number) => request<null>('post', `/api/plans/${id}/delete`)
+
+// 计划任务
+export const getPlanTasksApi = (planId: number) => request<PlanTask[]>('get', `/api/plans/${planId}/tasks`)
+export const updatePlanTaskApi = (taskId: number, data: Partial<PlanTask>) => request<null>('put', `/api/tasks/${taskId}`, data)
+
+// 实施记录
+export const getImplementationApi = () => request<ImplementationFarmGroup[]>('get', '/api/implementation')
+export const getImplementationByFarmApi = (farmId: string) => request<any>('get', `/api/implementation/${farmId}`)
+export const submitImplementationApi = (data: ImplementationFormData) => request<ImplementationRecord>('post', '/api/implementation/report', data)
+
+// 任务管理
+export const getTasksApi = (params?: { farmId?: string; stage?: string; status?: string }) => request<PlanTask[]>('get', '/api/tasks', params)
+export const getTaskByIdApi = (taskId: number) => request<PlanTask>('get', `/api/tasks/${taskId}`)
+export const getImplementationByTaskIdApi = (taskId: number) => request<ImplementationRecord | null>('get', `/api/tasks/${taskId}/implementation`)

@@ -1,6 +1,6 @@
 import { useEffect, useState, useMemo } from 'react'
 import { useNavigate } from 'react-router-dom'
-import { Typography, Skeleton } from 'antd'
+import { Typography, Skeleton, Alert, Card } from 'antd'
 import {
   GlobalOutlined,
   TeamOutlined,
@@ -9,10 +9,13 @@ import {
   RightOutlined,
   RiseOutlined,
   CloudOutlined,
+  WarningOutlined,
+  CheckCircleOutlined,
 } from '@ant-design/icons'
 import { useAppSelector } from '@/store/hooks'
-import { getPlotsApi, getWeatherApi, type WeatherData } from '@/services/api'
+import { getPlotsApi, getWeatherApi, getWeatherWarningsApi, type WeatherData } from '@/services/api'
 import type { PlotFeature } from '@/types/plot'
+import type { DisasterWarning } from '@/types/production'
 
 const { Text } = Typography
 
@@ -39,12 +42,14 @@ function Dashboard() {
 
   const [plots, setPlots] = useState<PlotFeature[]>([])
   const [weather, setWeather] = useState<WeatherData | null>(null)
+  const [warnings, setWarnings] = useState<DisasterWarning[]>([])
   const [loading, setLoading] = useState(true)
 
   useEffect(() => {
     Promise.all([
       getPlotsApi().then(setPlots).catch(() => {}),
       getWeatherApi().then(setWeather).catch(() => {}),
+      getWeatherWarningsApi().then(setWarnings).catch(() => {}),
     ]).finally(() => setLoading(false))
   }, [])
 
@@ -148,7 +153,7 @@ function Dashboard() {
       {/* 统计卡片 */}
       <div className="stats-row">
         {stats.map((stat) => (
-          <div className="stat-card" key={stat.key}>
+          <Card className="stat-card" key={stat.key} styles={{ body: { padding: 0 } }}>
             <div className={`stat-card__icon ${stat.iconClass}`}>{stat.icon}</div>
             <div>
               {loading ? (
@@ -158,17 +163,19 @@ function Dashboard() {
               )}
               <div className="stat-card__label">{stat.label}</div>
             </div>
-          </div>
+          </Card>
         ))}
       </div>
 
       {/* 快捷入口 */}
       <div className="shortcuts-row">
         {shortcuts.map((item) => (
-          <div
+          <Card
             className="shortcut-card"
             key={item.key}
+            hoverable
             onClick={() => navigate(item.path)}
+            styles={{ body: { padding: '24px' } }}
           >
             <div className="shortcut-card__icon">{item.icon}</div>
             <div>
@@ -176,21 +183,23 @@ function Dashboard() {
               <div className="shortcut-card__desc">{item.desc}</div>
             </div>
             <RightOutlined className="shortcut-card__arrow" />
-          </div>
+          </Card>
         ))}
       </div>
 
-      {/* 下半部分：天气 + 动态 */}
+      {/* 下半部分：天气+预警 + 动态 */}
       <div className="dashboard-grid">
-        {/* 实时天气 */}
-        <div className="dashboard-card">
-          <div className="dashboard-card__header">
-            <span className="dashboard-card__title">
-              <CloudOutlined className="dashboard-card__title-icon" />
-              实时天气
-            </span>
-          </div>
-          <div className="dashboard-card__body">
+        <div className="dashboard-left-col">
+          {/* 实时天气 */}
+          <Card
+            className="dashboard-card"
+            title={
+              <span className="dashboard-card__title">
+                <CloudOutlined className="dashboard-card__title-icon" />
+                实时天气
+              </span>
+            }
+          >
             {weather ? (
               <div>
                 <div className="weather-widget">
@@ -210,24 +219,68 @@ function Dashboard() {
             ) : (
               <Skeleton active paragraph={{ rows: 2 }} />
             )}
-          </div>
+          </Card>
+
+          {/* 灾害预警 */}
+          <Card
+            className="dashboard-card"
+            title={
+              <span className="dashboard-card__title">
+                <WarningOutlined className="dashboard-card__title-icon" />
+                灾害预警
+              </span>
+            }
+          >
+            {loading ? (
+              <Skeleton active paragraph={{ rows: 2 }} />
+            ) : warnings.length === 0 ? (
+              <div className="warning-empty">
+                <CheckCircleOutlined className="warning-empty__icon" />
+                <span>当前无生效预警</span>
+              </div>
+            ) : (
+              <div className="warning-list">
+                {warnings.map((w) => {
+                  const alertType =
+                    w.warningLevel === '红色' ? 'error' :
+                    w.warningLevel === '橙色' ? 'warning' :
+                    w.warningLevel === '黄色' ? 'warning' : 'info'
+                  return (
+                    <Alert
+                      key={w.id}
+                      type={alertType}
+                      showIcon
+                      message={`${w.warningType}（${w.warningLevel}预警）`}
+                      description={
+                        <div>
+                          <div>{w.description}</div>
+                          <div className="warning-time">
+                            {w.startTime} ~ {w.endTime}
+                          </div>
+                        </div>
+                      }
+                      style={{ marginBottom: 8 }}
+                    />
+                  )
+                })}
+              </div>
+            )}
+          </Card>
         </div>
 
         {/* 最近动态 */}
-        <div className="dashboard-card">
-          <div className="dashboard-card__header">
-            <span className="dashboard-card__title">最近动态</span>
-          </div>
-          <div className="dashboard-card__body">
-            {activities.map((item, i) => (
-              <div className="activity-item" key={i}>
-                <span className={`activity-item__dot ${item.dot}`} />
-                <span className="activity-item__text">{item.text}</span>
-                <span className="activity-item__time">{item.time}</span>
-              </div>
-            ))}
-          </div>
-        </div>
+        <Card
+          className="dashboard-card"
+          title={<span className="dashboard-card__title">最近动态</span>}
+        >
+          {activities.map((item, i) => (
+            <div className="activity-item" key={i}>
+              <span className={`activity-item__dot ${item.dot}`} />
+              <span className="activity-item__text">{item.text}</span>
+              <span className="activity-item__time">{item.time}</span>
+            </div>
+          ))}
+        </Card>
       </div>
     </div>
   )
