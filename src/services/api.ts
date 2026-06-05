@@ -6,7 +6,6 @@ import type { Farm, FarmFormData } from '@/types/farm'
 import type {
   TaskConfigGrouped,
   TaskFieldConfig,
-  WeatherExtended,
   DisasterWarning,
   PlantingPlan,
   PlanTask,
@@ -121,18 +120,6 @@ export async function rejectHandoverApi(id: string) {
   return request<null>('post', `/api/handovers/${id}/reject`)
 }
 
-// ===== Weather =====
-export interface WeatherData {
-  temperature: number
-  condition: string
-  humidity: number
-  windSpeed: string
-}
-
-export async function getWeatherApi() {
-  return request<WeatherData>('get', '/api/weather')
-}
-
 // ===== Farms =====
 export async function getFarmsApi() {
   return request<Farm[]>('get', '/api/farms')
@@ -178,8 +165,6 @@ export const getTaskConfigApi = () => request<TaskConfigGrouped>('get', '/api/ta
 export const getTaskConfigByStageApi = (stage: string) => request<TaskFieldConfig[]>('get', `/api/task-config/${stage}`)
 export const updateTaskConfigApi = (stage: string, fields: TaskFieldConfig[]) => request<null>('put', `/api/task-config/${stage}`, { fields })
 
-// 天气扩展
-export const getWeatherExtendedApi = () => request<{ weather: WeatherExtended; warnings: DisasterWarning[] }>('get', '/api/weather/extended')
 export const getWeatherWarningsApi = () => request<DisasterWarning[]>('get', '/api/weather/warnings')
 
 // 种植计划（CRUD）

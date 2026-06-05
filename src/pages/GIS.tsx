@@ -5,7 +5,9 @@ import ReactECharts from 'echarts-for-react'
 import { AutoComplete, Input, Button, Descriptions, Typography, Empty } from 'antd'
 import { SearchOutlined, CloseOutlined } from '@ant-design/icons'
 import type { PlotFeature } from '@/types/plot'
-import { getPlotsApi, getWeatherApi, type WeatherData } from '@/services/api'
+import { getPlotsApi } from '@/services/api'
+import { weatherMap, fetchPlotWeather } from '@/utils/weather'
+import type { PlotWeather } from '@/utils/weather'
 import '@/styles/GIS.scss'
 
 // 高德卫星影像瓦片
@@ -37,7 +39,8 @@ function GIS() {
   const [panelOpen, setPanelOpen] = useState(false)
   const [searchText, setSearchText] = useState('')
   const [plots, setPlots] = useState<PlotFeature[]>([])
-  const [weather, setWeather] = useState<WeatherData | null>(null)
+  const [plotWeather, setPlotWeather] = useState<PlotWeather | null>(null)
+  const [weatherLoading, setWeatherLoading] = useState(false)
 
   // 从 API 获取地块数据
   useEffect(() => {
@@ -46,19 +49,20 @@ function GIS() {
       .catch(() => console.error('获取地块数据失败'))
   }, [])
 
-  // 面板打开时获取天气
-  useEffect(() => {
-    if (panelOpen) {
-      getWeatherApi()
-        .then(setWeather)
-        .catch(() => {})
-    }
-  }, [panelOpen])
-
   const searchOptions = useMemo(
     () => plots.map((p) => ({ label: p.name, value: p.name })),
     [plots],
   )
+
+  const loadPlotWeather = (plot: PlotFeature) => {
+    if (!plot.center) return
+    setWeatherLoading(true)
+    setPlotWeather(null)
+    fetchPlotWeather(plot.center[0], plot.center[1])
+      .then(setPlotWeather)
+      .catch(() => {})
+      .finally(() => setWeatherLoading(false))
+  }
 
   const handleSearchSelect = (value: string) => {
     const plot = plots.find((p) => p.name === value)
@@ -77,6 +81,7 @@ function GIS() {
     setSelectedPlot(plot)
     setPanelOpen(true)
     setSearchText('')
+    loadPlotWeather(plot)
   }
 
   // ECharts 饼图配置
@@ -164,6 +169,7 @@ function GIS() {
       polygon.on('click', () => {
         setSelectedPlot(plot)
         setPanelOpen(true)
+        loadPlotWeather(plot)
       })
 
       polygonRefs.current.set(plot.id, polygon)
@@ -230,28 +236,36 @@ function GIS() {
               </div>
             )}
 
+            <Title level={5}>实时天气</Title>
             <div className="gis-panel__weather">
-              {weather ? (
+              {weatherLoading ? (
+                <Text type="secondary">天气数据获取中...</Text>
+              ) : plotWeather && weatherMap[plotWeather.code] ? (
                 <div className="gis-panel__weather-grid">
                   <div>
-                    <Text type="secondary" className="gis-panel__weather-label">温度</Text>
-                    <div><Text strong>{weather.temperature}°C</Text></div>
+                    <Text type="secondary" className="gis-panel__weather-label">天气</Text>
+                    <div style={{ display: 'flex', alignItems: 'center', gap: 4 }}>
+                      <span style={{ color: weatherMap[plotWeather.code].color, display: 'inline-flex' }}>
+                        {weatherMap[plotWeather.code].icon}
+                      </span>
+                      <Text strong>{weatherMap[plotWeather.code].label}</Text>
+                    </div>
                   </div>
                   <div>
-                    <Text type="secondary" className="gis-panel__weather-label">天气</Text>
-                    <div><Text strong>{weather.condition}</Text></div>
+                    <Text type="secondary" className="gis-panel__weather-label">温度</Text>
+                    <div><Text strong>{plotWeather.temp}°C</Text></div>
                   </div>
                   <div>
                     <Text type="secondary" className="gis-panel__weather-label">湿度</Text>
-                    <div><Text strong>{weather.humidity}%</Text></div>
+                    <div><Text strong>{plotWeather.humidity}%</Text></div>
                   </div>
                   <div>
-                    <Text type="secondary" className="gis-panel__weather-label">风力</Text>
-                    <div><Text strong>{weather.windSpeed}</Text></div>
+                    <Text type="secondary" className="gis-panel__weather-label">风速</Text>
+                    <div><Text strong>{plotWeather.windSpeed} km/h</Text></div>
                   </div>
                 </div>
               ) : (
-                <Text type="secondary">天气数据获取中...</Text>
+                <Text type="secondary">请点击地块查看天气</Text>
               )}
             </div>
           </div>

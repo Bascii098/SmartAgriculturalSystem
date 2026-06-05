@@ -1,11 +1,11 @@
 import { useEffect, useRef, useState } from 'react'
 import { Link } from 'react-router-dom'
-import { Form, Input, InputNumber, Upload, Image, Typography, message, Space, Tooltip, Modal, Button } from 'antd'
+import { Form, Input, InputNumber, Upload, Image, Typography, message, Space, Tooltip } from 'antd'
 import { PlusOutlined } from '@ant-design/icons'
 import type { UploadFile, UploadProps } from 'antd'
 import { useAppDispatch, useAppSelector } from '@/store/hooks'
 import { setEditing } from '@/store/growerSlice'
-import { getGrowerApi, updateGrowerApi, changePasswordApi } from '@/services/api'
+import { getGrowerApi, updateGrowerApi } from '@/services/api'
 import type { GrowerFormData } from '@/types/grower'
 
 const { Text } = Typography
@@ -252,83 +252,6 @@ function CooperativeFields({ disabled }: { disabled: boolean }) {
   )
 }
 
-/** 修改密码弹窗 */
-function ChangePasswordModal({
-  open,
-  onClose,
-  username,
-}: {
-  open: boolean
-  onClose: () => void
-  username: string
-}) {
-  const [form] = Form.useForm()
-
-  const handleOk = async () => {
-    try {
-      const values = await form.validateFields()
-      await changePasswordApi(username, values.oldPassword, values.newPassword)
-      message.success('密码修改成功')
-      form.resetFields()
-      onClose()
-    } catch (e) {
-      message.error((e as Error).message || '密码修改失败')
-    }
-  }
-
-  return (
-    <Modal
-      title="修改密码"
-      open={open}
-      onOk={handleOk}
-      onCancel={() => {
-        form.resetFields()
-        onClose()
-      }}
-      okText="确认修改"
-      cancelText="取消"
-    >
-      <Form form={form} layout="vertical">
-        <Form.Item
-          name="oldPassword"
-          label="旧密码"
-          rules={[{ required: true, message: '请输入旧密码' }]}
-        >
-          <Input.Password />
-        </Form.Item>
-        <Form.Item
-          name="newPassword"
-          label="新密码"
-          rules={[
-            { required: true, message: '请输入新密码' },
-            { min: 4, message: '密码至少4个字符' },
-          ]}
-        >
-          <Input.Password />
-        </Form.Item>
-        <Form.Item
-          name="confirmPassword"
-          label="确认新密码"
-          dependencies={['newPassword']}
-          rules={[
-            { required: true, message: '请确认新密码' },
-            ({ getFieldValue }) => ({
-              validator(_, value) {
-                if (!value || getFieldValue('newPassword') === value) {
-                  return Promise.resolve()
-                }
-                return Promise.reject(new Error('两次输入的密码不一致'))
-              },
-            }),
-          ]}
-        >
-          <Input.Password />
-        </Form.Item>
-      </Form>
-    </Modal>
-  )
-}
-
 function BasicInfo() {
   const dispatch = useAppDispatch()
   const identity = useAppSelector((state) => state.auth.identity)
@@ -338,7 +261,6 @@ function BasicInfo() {
   const [basicInfo, setBasicInfo] = useState<GrowerFormData | null>(null)
 
   const [form] = Form.useForm()
-  const [pwdModalOpen, setPwdModalOpen] = useState(false)
   const prevEditingRef = useRef(isEditing)
 
   // 从 API 获取初始数据
@@ -407,9 +329,6 @@ function BasicInfo() {
         <span className="basic-info-card__identity">
           {identity === 'grower' ? '种植户' : '种植合作社'}
         </span>
-        <Button size="small" onClick={() => setPwdModalOpen(true)}>
-          修改密码
-        </Button>
       </div>
       <Form
         form={form}
@@ -424,13 +343,6 @@ function BasicInfo() {
           <CooperativeFields disabled={!isEditing} />
         )}
       </Form>
-      {username && (
-        <ChangePasswordModal
-          open={pwdModalOpen}
-          onClose={() => setPwdModalOpen(false)}
-          username={username}
-        />
-      )}
     </div>
   )
 }

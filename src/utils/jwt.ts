@@ -4,7 +4,7 @@ export interface TokenPayload {
   sub: string       // username
   identity: Identity
   iat?: number      // issued at (milliseconds)
-  exp: number       // expiration (milliseconds)
+  exp: number       // expiration (seconds, Unix epoch)
 }
 
 // Base64URL 解码
@@ -35,5 +35,5 @@ export function parseToken(token: string): TokenPayload | null {
 export function isTokenExpired(token: string): boolean {
   const payload = parseToken(token)
   if (!payload) return true
-  return payload.exp < Date.now()
+  return payload.exp * 1000 < Date.now()
 }

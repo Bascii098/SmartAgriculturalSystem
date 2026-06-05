@@ -31,3 +31,5 @@ dist-ssr
 # MySQL
 server/mysql-data/
 server/my.ini
+
+docs/

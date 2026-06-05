@@ -8,7 +8,7 @@ export function getToken(): string | undefined {
 
 export function setToken(token: string, expiresInSeconds: number): void {
   // js-cookie 的 expires 接受天数，需要转换
-  Cookies.set(TOKEN_KEY, token, { expires: expiresInSeconds / 86400, path: '/' })
+  Cookies.set(TOKEN_KEY, token, { expires: expiresInSeconds / 86400, path: '/', sameSite: 'strict' })
 }
 
 export function removeToken(): void {
@@ -22,7 +22,7 @@ export function getIdentity(): string | undefined {
 }
 
 export function setIdentity(identity: string, expiresInSeconds: number): void {
-  Cookies.set(IDENTITY_KEY, identity, { expires: expiresInSeconds / 86400, path: '/' })
+  Cookies.set(IDENTITY_KEY, identity, { expires: expiresInSeconds / 86400, path: '/', sameSite: 'strict' })
 }
 
 export function removeIdentity(): void {

@@ -20,6 +20,7 @@
     "js-cookie": "^3.0.5",
     "leaflet": "^1.9.4",
     "leaflet-draw": "^1.0.4",
+    "lucide-react": "^1.17.0",
     "lunar-javascript": "^1.7.7",
     "react": "^19.2.5",
     "react-dom": "^19.2.5",

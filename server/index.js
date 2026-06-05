@@ -3,6 +3,8 @@ const cors = require('cors')
 const mysql = require('mysql2/promise')
 const { v4: uuidv4 } = require('uuid')
 const bcrypt = require('bcryptjs')
+const jwt = require('jsonwebtoken')
+const { authMiddleware, SECRET } = require('./middleware/auth')
 
 const app = express()
 app.use(cors())
@@ -58,7 +60,11 @@ app.post('/api/auth/login', async (req, res) => {
     const user = rows[0]
     const match = await bcrypt.compare(password, user.password)
     if (!match) return res.json(fail('用户名或密码错误'))
-    const token = Buffer.from(JSON.stringify({ sub: user.username, identity: user.identity, exp: Date.now() + 86400000 })).toString('base64')
+    const token = jwt.sign(
+      { sub: user.username, identity: user.identity },
+      SECRET,
+      { expiresIn: '24h' }
+    )
     res.json(ok({ token, identity: user.identity, username: user.username }))
   } catch (e) {
     res.status(500).json(fail(e.message))
@@ -84,7 +90,7 @@ app.post('/api/auth/register', async (req, res) => {
 
 // ==================== Change Password ====================
 
-app.put('/api/auth/password', async (req, res) => {
+app.put('/api/auth/password', authMiddleware, async (req, res) => {
   const { username, oldPassword, newPassword } = req.body
   if (!username || !oldPassword || !newPassword) {
     return res.json(fail('参数不完整'))
@@ -107,7 +113,7 @@ app.put('/api/auth/password', async (req, res) => {
 
 // ==================== Growers ====================
 
-app.get('/api/growers', async (req, res) => {
+app.get('/api/growers', authMiddleware, async (req, res) => {
   try {
     const [rows] = await pool.query('SELECT username, identity FROM users')
     res.json(ok(rows))
@@ -116,7 +122,7 @@ app.get('/api/growers', async (req, res) => {
   }
 })
 
-app.get('/api/growers/:username', async (req, res) => {
+app.get('/api/growers/:username', authMiddleware, async (req, res) => {
   try {
     const { username } = req.params
     const [users] = await pool.query('SELECT identity FROM users WHERE username = ?', [username])
@@ -131,7 +137,7 @@ app.get('/api/growers/:username', async (req, res) => {
   }
 })
 
-app.put('/api/growers/:username', async (req, res) => {
+app.put('/api/growers/:username', authMiddleware, async (req, res) => {
   try {
     const { username } = req.params
     const data = convertCamelToSnake(req.body)
@@ -154,7 +160,7 @@ app.put('/api/growers/:username', async (req, res) => {
 
 // ==================== Farms ====================
 
-app.get('/api/farms', async (req, res) => {
+app.get('/api/farms', authMiddleware, async (req, res) => {
   try {
     const [rows] = await pool.query(`
       SELECT f.*,
@@ -171,7 +177,7 @@ app.get('/api/farms', async (req, res) => {
   }
 })
 
-app.get('/api/farms/:id', async (req, res) => {
+app.get('/api/farms/:id', authMiddleware, async (req, res) => {
   try {
     const [rows] = await pool.query(`
       SELECT f.*,
@@ -186,7 +192,7 @@ app.get('/api/farms/:id', async (req, res) => {
   }
 })
 
-app.post('/api/farms', async (req, res) => {
+app.post('/api/farms', authMiddleware, async (req, res) => {
   const { name, address, longitude, latitude, manager, region } = req.body
   const id = uuidv4()
   try {
@@ -200,7 +206,7 @@ app.post('/api/farms', async (req, res) => {
   }
 })
 
-app.put('/api/farms/:id', async (req, res) => {
+app.put('/api/farms/:id', authMiddleware, async (req, res) => {
   const { name, address, longitude, latitude, manager, region } = req.body
   try {
     await pool.query(
@@ -213,7 +219,7 @@ app.put('/api/farms/:id', async (req, res) => {
   }
 })
 
-app.post('/api/farms/:id/delete', async (req, res) => {
+app.post('/api/farms/:id/delete', authMiddleware, async (req, res) => {
   try {
     await pool.query('DELETE FROM farms WHERE id = ?', [req.params.id])
     res.json(ok(null))
@@ -269,7 +275,7 @@ async function getPlotFull(plotId) {
   }
 }
 
-app.get('/api/farms/:farmId/plots', async (req, res) => {
+app.get('/api/farms/:farmId/plots', authMiddleware, async (req, res) => {
   try {
     const [plots] = await pool.query('SELECT id FROM plots WHERE farm_id = ?', [req.params.farmId])
     const result = []
@@ -283,7 +289,7 @@ app.get('/api/farms/:farmId/plots', async (req, res) => {
   }
 })
 
-app.get('/api/plots', async (req, res) => {
+app.get('/api/plots', authMiddleware, async (req, res) => {
   try {
     const [plots] = await pool.query('SELECT id FROM plots')
     const result = []
@@ -297,7 +303,7 @@ app.get('/api/plots', async (req, res) => {
   }
 })
 
-app.get('/api/plots/:id', async (req, res) => {
+app.get('/api/plots/:id', authMiddleware, async (req, res) => {
   try {
     const full = await getPlotFull(req.params.id)
     if (!full) return res.json(fail('地块不存在'))
@@ -307,7 +313,7 @@ app.get('/api/plots/:id', async (req, res) => {
   }
 })
 
-app.post('/api/farms/:farmId/plots', async (req, res) => {
+app.post('/api/farms/:farmId/plots', authMiddleware, async (req, res) => {
   const id = uuidv4()
   const d = req.body
   try {
@@ -342,7 +348,7 @@ app.post('/api/farms/:farmId/plots', async (req, res) => {
   }
 })
 
-app.put('/api/plots/:id', async (req, res) => {
+app.put('/api/plots/:id', authMiddleware, async (req, res) => {
   const d = req.body
   try {
     await pool.query(
@@ -378,7 +384,7 @@ app.put('/api/plots/:id', async (req, res) => {
   }
 })
 
-app.post('/api/plots/:id/delete', async (req, res) => {
+app.post('/api/plots/:id/delete', authMiddleware, async (req, res) => {
   try {
     await pool.query('DELETE FROM plots WHERE id = ?', [req.params.id])
     res.json(ok(null))
@@ -389,7 +395,7 @@ app.post('/api/plots/:id/delete', async (req, res) => {
 
 // ==================== Handovers ====================
 
-app.get('/api/handovers', async (req, res) => {
+app.get('/api/handovers', authMiddleware, async (req, res) => {
   try {
     const [rows] = await pool.query('SELECT * FROM handovers ORDER BY created_at DESC')
     res.json(ok(rows.map((r) => ({
@@ -406,7 +412,7 @@ app.get('/api/handovers', async (req, res) => {
   }
 })
 
-app.post('/api/handovers', async (req, res) => {
+app.post('/api/handovers', authMiddleware, async (req, res) => {
   const { fromUser, toUser, plotId, plotName } = req.body
   const id = uuidv4()
   try {
@@ -420,7 +426,7 @@ app.post('/api/handovers', async (req, res) => {
   }
 })
 
-app.post('/api/handovers/:id/confirm', async (req, res) => {
+app.post('/api/handovers/:id/confirm', authMiddleware, async (req, res) => {
   try {
     const [rows] = await pool.query('SELECT * FROM handovers WHERE id = ?', [req.params.id])
     if (rows.length === 0) return res.json(fail('交接记录不存在'))
@@ -433,7 +439,7 @@ app.post('/api/handovers/:id/confirm', async (req, res) => {
   }
 })
 
-app.post('/api/handovers/:id/reject', async (req, res) => {
+app.post('/api/handovers/:id/reject', authMiddleware, async (req, res) => {
   try {
     await pool.query('UPDATE handovers SET status = ? WHERE id = ?', ['rejected', req.params.id])
     res.json(ok(null))
@@ -444,42 +450,9 @@ app.post('/api/handovers/:id/reject', async (req, res) => {
 
 // ==================== Weather ====================
 
-app.get('/api/weather', async (req, res) => {
-  try {
-    const [rows] = await pool.query(
-      'SELECT temperature, `condition`, humidity, wind_speed FROM weather_data WHERE record_date = CURDATE() LIMIT 1'
-    )
-    if (rows.length === 0) {
-      // 如果当天没有数据，返回最近一条
-      const [latest] = await pool.query(
-        'SELECT temperature, `condition`, humidity, wind_speed FROM weather_data ORDER BY record_date DESC LIMIT 1'
-      )
-      if (latest.length === 0) return res.json(ok({ temperature: 0, condition: '未知', humidity: 0, windSpeed: '0级' }))
-      const r = latest[0]
-      return res.json(ok({
-        temperature: Number(r.temperature),
-        condition: r.condition,
-        humidity: r.humidity,
-        windSpeed: r.wind_speed,
-      }))
-    }
-    const r = rows[0]
-    res.json(ok({
-      temperature: Number(r.temperature),
-      condition: r.condition,
-      humidity: r.humidity,
-      windSpeed: r.wind_speed,
-    }))
-  } catch (e) {
-    res.status(500).json(fail(e.message))
-  }
-})
-
-// ==================== Production ====================
-
 // --- Task Config ---
 
-app.get('/api/task-config', async (req, res) => {
+app.get('/api/task-config', authMiddleware, async (req, res) => {
   try {
     const [rows] = await pool.query('SELECT * FROM task_field_configs ORDER BY stage, sort_order')
     // 按 stage 分组
@@ -504,7 +477,7 @@ app.get('/api/task-config', async (req, res) => {
   }
 })
 
-app.get('/api/task-config/:stage', async (req, res) => {
+app.get('/api/task-config/:stage', authMiddleware, async (req, res) => {
   try {
     const [rows] = await pool.query(
       'SELECT * FROM task_field_configs WHERE stage = ? ORDER BY sort_order',
@@ -526,7 +499,7 @@ app.get('/api/task-config/:stage', async (req, res) => {
   }
 })
 
-app.put('/api/task-config/:stage', async (req, res) => {
+app.put('/api/task-config/:stage', authMiddleware, async (req, res) => {
   try {
     const { fields } = req.body
     if (!Array.isArray(fields)) return res.json(fail('fields 必须是数组'))
@@ -545,67 +518,7 @@ app.put('/api/task-config/:stage', async (req, res) => {
   }
 })
 
-// --- Weather Extended ---
-
-app.get('/api/weather/extended', async (req, res) => {
-  try {
-    const [weatherRows] = await pool.query(
-      'SELECT * FROM weather_data WHERE record_date = CURDATE() LIMIT 1'
-    )
-    let weather = null
-    if (weatherRows.length > 0) {
-      const w = weatherRows[0]
-      weather = {
-        recordDate: w.record_date,
-        temperature: Number(w.temperature),
-        temperatureHigh: Number(w.temperature_high),
-        temperatureLow: Number(w.temperature_low),
-        condition: w.condition,
-        humidity: w.humidity,
-        windSpeed: w.wind_speed,
-        rainfall: Number(w.rainfall),
-        sunshineHours: Number(w.sunshine_hours),
-        soilMoisture: w.soil_moisture,
-      }
-    }
-    // 如果当天没有数据，取最近一条
-    if (!weather) {
-      const [latest] = await pool.query('SELECT * FROM weather_data ORDER BY record_date DESC LIMIT 1')
-      if (latest.length > 0) {
-        const w = latest[0]
-        weather = {
-          recordDate: w.record_date,
-          temperature: Number(w.temperature),
-          temperatureHigh: Number(w.temperature_high),
-          temperatureLow: Number(w.temperature_low),
-          condition: w.condition,
-          humidity: w.humidity,
-          windSpeed: w.wind_speed,
-          rainfall: Number(w.rainfall),
-          sunshineHours: Number(w.sunshine_hours),
-          soilMoisture: w.soil_moisture,
-        }
-      }
-    }
-    const [warnings] = await pool.query(
-      "SELECT * FROM disaster_warnings WHERE status = '生效中' ORDER BY created_at DESC"
-    )
-    const warningList = warnings.map((w) => ({
-      id: w.id,
-      warningType: w.warning_type,
-      warningLevel: w.warning_level,
-      description: w.description,
-      startTime: w.start_time,
-      endTime: w.end_time,
-      status: w.status,
-    }))
-    res.json(ok({ weather, warnings: warningList }))
-  } catch (e) {
-    res.status(500).json(fail(e.message))
-  }
-})
-
-app.get('/api/weather/warnings', async (req, res) => {
+app.get('/api/weather/warnings', authMiddleware, async (req, res) => {
   try {
     const [rows] = await pool.query(
       "SELECT * FROM disaster_warnings WHERE status = '生效中' ORDER BY created_at DESC"
@@ -627,7 +540,7 @@ app.get('/api/weather/warnings', async (req, res) => {
 
 // --- Planting Plans ---
 
-app.get('/api/plans', async (req, res) => {
+app.get('/api/plans', authMiddleware, async (req, res) => {
   try {
     let sql = `SELECT pp.*, f.name AS farmName, p.name AS plotName
       FROM planting_plans pp
@@ -646,7 +559,7 @@ app.get('/api/plans', async (req, res) => {
   }
 })
 
-app.get('/api/plans/:id', async (req, res) => {
+app.get('/api/plans/:id', authMiddleware, async (req, res) => {
   try {
     const [rows] = await pool.query(
       `SELECT pp.*, f.name AS farmName, p.name AS plotName
@@ -668,7 +581,7 @@ app.get('/api/plans/:id', async (req, res) => {
   }
 })
 
-app.post('/api/plans', async (req, res) => {
+app.post('/api/plans', authMiddleware, async (req, res) => {
   const { farmId, plotId, cropType, seedVariety, area } = req.body
   try {
     // 作物代码映射
@@ -720,7 +633,7 @@ app.post('/api/plans', async (req, res) => {
   }
 })
 
-app.post('/api/plans/:id/delete', async (req, res) => {
+app.post('/api/plans/:id/delete', authMiddleware, async (req, res) => {
   try {
     const planId = req.params.id
     // 删除关联的实施记录
@@ -740,7 +653,7 @@ app.post('/api/plans/:id/delete', async (req, res) => {
 
 // --- Plan Tasks ---
 
-app.get('/api/plans/:id/tasks', async (req, res) => {
+app.get('/api/plans/:id/tasks', authMiddleware, async (req, res) => {
   try {
     const [rows] = await pool.query(
       "SELECT * FROM plan_tasks WHERE plan_id = ? ORDER BY FIELD(stage, '整地','播种','施肥','植保','收获')",
@@ -752,7 +665,7 @@ app.get('/api/plans/:id/tasks', async (req, res) => {
   }
 })
 
-app.put('/api/tasks/:id', async (req, res) => {
+app.put('/api/tasks/:id', authMiddleware, async (req, res) => {
   try {
     const { configData, plannedDate, status } = req.body
     const taskId = req.params.id
@@ -788,7 +701,7 @@ app.put('/api/tasks/:id', async (req, res) => {
 
 // --- Implementation ---
 
-app.get('/api/implementation', async (req, res) => {
+app.get('/api/implementation', authMiddleware, async (req, res) => {
   try {
     // 查询所有有计划的农场
     const [farms] = await pool.query(
@@ -828,7 +741,7 @@ app.get('/api/implementation', async (req, res) => {
   }
 })
 
-app.get('/api/implementation/:farmId', async (req, res) => {
+app.get('/api/implementation/:farmId', authMiddleware, async (req, res) => {
   try {
     const farmId = req.params.farmId
     const [rows] = await pool.query(
@@ -863,7 +776,7 @@ app.get('/api/implementation/:farmId', async (req, res) => {
   }
 })
 
-app.post('/api/implementation/report', async (req, res) => {
+app.post('/api/implementation/report', authMiddleware, async (req, res) => {
   const { taskId, plotId, implementDate, method, seedUsed, inputAmount, equipment, remark } = req.body
   try {
     // 插入实施记录
@@ -895,7 +808,7 @@ app.post('/api/implementation/report', async (req, res) => {
 
 // --- Tasks ---
 
-app.get('/api/tasks', async (req, res) => {
+app.get('/api/tasks', authMiddleware, async (req, res) => {
   try {
     let sql = `SELECT pt.*, pp.plan_no, pp.crop_type, pp.farm_id, pp.plot_id,
       f.name AS farmName, p.name AS plotName
@@ -917,7 +830,7 @@ app.get('/api/tasks', async (req, res) => {
   }
 })
 
-app.get('/api/tasks/:id', async (req, res) => {
+app.get('/api/tasks/:id', authMiddleware, async (req, res) => {
   try {
     const [rows] = await pool.query(
       `SELECT pt.*, pp.plan_no, pp.crop_type, pp.seed_variety, pp.farm_id, pp.plot_id,
@@ -936,7 +849,7 @@ app.get('/api/tasks/:id', async (req, res) => {
   }
 })
 
-app.get('/api/tasks/:id/implementation', async (req, res) => {
+app.get('/api/tasks/:id/implementation', authMiddleware, async (req, res) => {
   try {
     const [rows] = await pool.query(
       'SELECT * FROM implementation_records WHERE task_id = ? LIMIT 1',

@@ -33,6 +33,8 @@ import {
   ExpandOutlined,
   CompressOutlined,
 } from '@ant-design/icons'
+import { weatherMap, fetchPlotWeather } from '@/utils/weather'
+import type { PlotWeather } from '@/utils/weather'
 import { MapContainer, TileLayer, Polygon, Popup, useMap } from 'react-leaflet'
 import L from 'leaflet'
 import 'leaflet/dist/leaflet.css'
@@ -202,6 +204,8 @@ function FarmDetail() {
   const [mapExpanded, setMapExpanded] = useState(false)
   const [saving, setSaving] = useState(false)
   const [page, setPage] = useState(1)
+  const [plotWeather, setPlotWeather] = useState<PlotWeather | null>(null)
+  const [weatherLoading, setWeatherLoading] = useState(false)
   const pagedPlots = plots.slice((page - 1) * PAGE_SIZE, page * PAGE_SIZE)
   const [form] = Form.useForm<PlotFormValues>()
 
@@ -225,7 +229,7 @@ function FarmDetail() {
     setDrawnCoords(coords)
   }, [])
 
-  /** 点击地块卡片 → 地图飞到该地块 + 列表跳到对应页 */
+  /** 点击地块卡片 → 地图飞到该地块 + 获取该地块天气 */
   const handleFlyToPlot = (plot: PlotFeature) => {
     setSelectedPlotId(plot.id)
     const idx = plots.findIndex((p) => p.id === plot.id)
@@ -235,6 +239,14 @@ function FarmDetail() {
     }
     if (plot.center && mapRef.current) {
       mapRef.current.flyTo(plot.center, 15, { duration: 1 })
+    }
+    if (plot.center) {
+      setWeatherLoading(true)
+      setPlotWeather(null)
+      fetchPlotWeather(plot.center[0], plot.center[1])
+        .then(setPlotWeather)
+        .catch(() => {})
+        .finally(() => setWeatherLoading(false))
     }
   }
 
@@ -419,6 +431,18 @@ function FarmDetail() {
                       <div className="plot-card__row">
                         <span className="plot-card__detail">
                           {plot.soilType || '-'} · {plot.landNature || '-'} · {plot.plotShape || '-'}
+                          {selectedPlotId === plot.id && weatherLoading && (
+                            <> · 加载天气中…</>
+                          )}
+                          {selectedPlotId === plot.id && plotWeather && weatherMap[plotWeather.code] && (
+                            <>
+                              {' · '}
+                              <span style={{ color: weatherMap[plotWeather.code].color, display: 'inline-flex', verticalAlign: 'middle' }}>
+                                {weatherMap[plotWeather.code].icon}
+                              </span>
+                              {' '}{weatherMap[plotWeather.code].label} {plotWeather.temp}°C
+                            </>
+                          )}
                         </span>
                         {plot.irrigationFacility && <Tag color="cyan" className="plot-tag">有灌溉</Tag>}
                       </div>

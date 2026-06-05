@@ -3,40 +3,14 @@ import { Space, Tag, Typography } from 'antd'
 import {
   ClockCircleOutlined,
   CalendarOutlined,
-  CloudOutlined,
 } from '@ant-design/icons'
+import { Cloud } from 'lucide-react'
 import { Lunar } from 'lunar-javascript'
+import { weatherMap } from '@/utils/weather'
 
 const { Text } = Typography
 
-interface WeatherData {
-  temp: number
-  code: number
-}
-
-const weatherMap: Record<number, string> = {
-  0: '☀️ 晴',
-  1: '🌤 少云',
-  2: '⛅ 多云',
-  3: '☁️ 阴',
-  45: '🌫 雾',
-  48: '🌫 雾凇',
-  51: '🌧 小毛毛雨',
-  53: '🌧 毛毛雨',
-  55: '🌧 大毛毛雨',
-  61: '🌧 小雨',
-  63: '🌧 中雨',
-  65: '🌧 大雨',
-  71: '❄️ 小雪',
-  73: '❄️ 中雪',
-  75: '❄️ 大雪',
-  80: '🌦 阵雨',
-  81: '🌦 中阵雨',
-  82: '🌦 大阵雨',
-  95: '⛈ 雷暴',
-  96: '⛈ 雷暴+冰雹',
-  99: '⛈ 强雷暴',
-}
+const iconSize = 16
 
 function getGregorian(): string {
   const now = new Date()
@@ -55,7 +29,7 @@ function getLunar(): string {
 
 function HeaderInfo() {
   const [time, setTime] = useState('')
-  const [weather, setWeather] = useState<WeatherData | null>(null)
+  const [weather, setWeather] = useState<{ temp: number; code: number } | null>(null)
 
   useEffect(() => {
     const tick = () => {
@@ -114,10 +88,22 @@ function HeaderInfo() {
       <Tag icon={<CalendarOutlined />} color="default">
         {getLunar()}
       </Tag>
-      <Tag icon={<CloudOutlined />} color="default">
-        {weather
-          ? `${weatherMap[weather.code] ?? '未知'} ${weather.temp}°C`
-          : '加载中…'}
+      <Tag color="default">
+        {weather && weatherMap[weather.code] ? (
+          <Space size={4}>
+            <span style={{ color: weatherMap[weather.code].color }}>
+              {weatherMap[weather.code].icon}
+            </span>
+            {weatherMap[weather.code].label} {weather.temp}°C
+          </Space>
+        ) : weather ? (
+          <Space size={4}>
+            <Cloud size={iconSize} />
+            未知 {weather.temp}°C
+          </Space>
+        ) : (
+          '加载中…'
+        )}
       </Tag>
       <Tag icon={<ClockCircleOutlined />} color="default">
         <Text code className="header-time">
