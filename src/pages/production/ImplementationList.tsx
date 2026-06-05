@@ -1,6 +1,6 @@
 import { useEffect, useState } from 'react'
 import { useNavigate } from 'react-router-dom'
-import { Card, Row, Col, Statistic, Empty, Spin, Button } from 'antd'
+import { Card, Row, Col, Statistic, Empty, Skeleton, Button } from 'antd'
 import {
   CheckCircleOutlined,
   ClockCircleOutlined,
@@ -41,67 +41,75 @@ function ImplementationList() {
         </div>
       </div>
 
-      <Spin spinning={loading}>
-        {groups.length === 0 && !loading ? (
-          <Card>
-            <Empty description="暂无实施数据" />
-          </Card>
-        ) : (
-          <Row gutter={[20, 20]}>
-            {groups.map((group) => (
-              <Col key={group.farmId} xs={24} sm={12} lg={8}>
-                <Card
-                  hoverable
-                  style={{ height: '100%' }}
-                  actions={[
-                    <Button
-                      key="detail"
-                      type="link"
-                      onClick={() => navigate(`/production/implementation/${group.farmId}`)}
-                    >
-                      查看详情 <RightOutlined />
-                    </Button>,
-                  ]}
-                >
-                  <Card.Meta
-                    title={
-                      <span style={{ fontSize: 18, fontWeight: 600 }}>
-                        {group.farmName}
-                      </span>
-                    }
-                  />
-                  <Row gutter={[16, 16]} style={{ marginTop: 16 }}>
-                    <Col span={8}>
-                      <Statistic
-                        title="今日任务"
-                        value={group.todayTasks}
-                        prefix={<CalendarOutlined />}
-                        valueStyle={{ color: '#29b6f6' }}
-                      />
-                    </Col>
-                    <Col span={8}>
-                      <Statistic
-                        title="已实施"
-                        value={group.implemented}
-                        prefix={<CheckCircleOutlined />}
-                        valueStyle={{ color: '#4caf50' }}
-                      />
-                    </Col>
-                    <Col span={8}>
-                      <Statistic
-                        title="未实施"
-                        value={group.unimplemented}
-                        prefix={<ClockCircleOutlined />}
-                        valueStyle={{ color: '#ff9800' }}
-                      />
-                    </Col>
-                  </Row>
-                </Card>
-              </Col>
-            ))}
-          </Row>
-        )}
-      </Spin>
+      {loading ? (
+        <Row gutter={[20, 20]}>
+          {Array.from({ length: 3 }).map((_, i) => (
+            <Col key={i} xs={24} sm={12} lg={8}>
+              <Card style={{ height: '100%' }}>
+                <Skeleton active paragraph={{ rows: 2 }} />
+              </Card>
+            </Col>
+          ))}
+        </Row>
+      ) : groups.length === 0 ? (
+        <Card>
+          <Empty description="暂无实施数据" />
+        </Card>
+      ) : (
+        <Row gutter={[20, 20]}>
+          {groups.map((group) => (
+            <Col key={group.farmId} xs={24} sm={12} lg={8}>
+              <Card
+                hoverable
+                style={{ height: '100%' }}
+                actions={[
+                  <Button
+                    key="detail"
+                    type="link"
+                    onClick={() => navigate(`/production/implementation/${group.farmId}`)}
+                  >
+                    查看详情 <RightOutlined />
+                  </Button>,
+                ]}
+              >
+                <Card.Meta
+                  title={
+                    <span style={{ fontSize: 18, fontWeight: 600 }}>
+                      {group.farmName}
+                    </span>
+                  }
+                />
+                <Row gutter={[16, 16]} style={{ marginTop: 16 }}>
+                  <Col span={8}>
+                    <Statistic
+                      title="今日任务"
+                      value={group.todayTasks}
+                      prefix={<CalendarOutlined />}
+                      valueStyle={{ color: '#29b6f6' }}
+                    />
+                  </Col>
+                  <Col span={8}>
+                    <Statistic
+                      title="已实施"
+                      value={group.implemented}
+                      prefix={<CheckCircleOutlined />}
+                      valueStyle={{ color: '#4caf50' }}
+                    />
+                  </Col>
+                  <Col span={8}>
+                    <Statistic
+                      title="未实施"
+                      value={group.unimplemented}
+                      prefix={<ClockCircleOutlined />}
+                      valueStyle={{ color: '#ff9800' }}
+                    />
+                  </Col>
+                </Row>
+              </Card>
+            </Col>
+          ))}
+        </Row>
+      )}
     </div>
   )
 }

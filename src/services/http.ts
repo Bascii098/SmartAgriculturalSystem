@@ -1,5 +1,6 @@
 import axios from 'axios'
-import { getToken, getIdentity, removeToken, removeIdentity } from '@/utils/cookie'
+import { message } from 'antd'
+import { getToken, removeToken, removeIdentity } from '@/utils/cookie'
 
 const http = axios.create({
   baseURL: 'http://localhost:3001',
@@ -7,23 +8,19 @@ const http = axios.create({
   headers: { 'Content-Type': 'application/json' },
 })
 
-// 请求拦截器：自动附加 Token + X-Identity
+// 请求拦截器：自动附加 Token
 http.interceptors.request.use(
   (config) => {
     const token = getToken()
     if (token) {
       config.headers.Authorization = `Bearer ${token}`
-      const identity = getIdentity()
-      if (identity) {
-        config.headers['X-Identity'] = identity
-      }
     }
     return config
   },
   (error) => Promise.reject(error),
 )
 
-// 响应拦截器：处理 401
+// 响应拦截器：处理 401 + 全局错误提示
 http.interceptors.response.use(
   (response) => response,
   (error) => {
@@ -31,7 +28,10 @@ http.interceptors.response.use(
       removeToken()
       removeIdentity()
       window.location.href = '/login'
+      return Promise.reject(error)
     }
+    const msg = error.response?.data?.message || error.message || '请求失败'
+    message.error(msg)
     return Promise.reject(error)
   },
 )

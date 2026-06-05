@@ -11,7 +11,7 @@ import {
   InputNumber,
   Select,
   Empty,
-  Spin,
+  Skeleton,
   Popconfirm,
   message,
 } from 'antd'
@@ -119,58 +119,66 @@ function FarmList() {
         </Button>
       </div>
 
-      <Spin spinning={loading}>
-        {filteredFarms.length === 0 && !loading ? (
-          <Empty description="暂无农场数据" className="farms-empty" />
-        ) : (
-          <Row gutter={[20, 20]} className="farms-grid">
-            {filteredFarms.map((farm) => (
-              <Col key={farm.id} xs={24} sm={12} lg={8} xl={6}>
-                <Card
-                  hoverable
-                  className="farm-card"
-                  onClick={() => navigate(`/farms/${farm.id}`)}
-                  actions={[
-                    <EditOutlined
-                      key="edit"
-                      onClick={(e) => handleEdit(farm, e)}
-                    />,
-                    <Popconfirm
-                      key="delete"
-                      title="确定删除该农场？"
-                      description="删除后将同时删除所有关联地块，此操作不可撤销。"
-                      onConfirm={() => handleDelete(farm.id)}
-                      okText="删除"
-                      cancelText="取消"
-                      okButtonProps={{ danger: true }}
-                    >
-                      <DeleteOutlined onClick={(e) => e.stopPropagation()} />
-                    </Popconfirm>,
-                  ]}
-                >
-                  <Card.Meta
-                    title={farm.name}
-                    description={
-                      <div className="farm-card__info">
-                        <p>
-                          <EnvironmentOutlined /> {farm.address || '未设置地址'}
-                        </p>
-                        <p>
-                          <TeamOutlined /> 负责人：{farm.managerName || farm.manager}
-                        </p>
-                        <div className="farm-card__stats">
-                          <span>{farm.plotCount ?? 0} 个地块</span>
-                          <span>{(farm.totalArea ?? 0).toFixed(0)} 亩</span>
-                        </div>
+      {loading ? (
+        <Row gutter={[20, 20]}>
+          {Array.from({ length: 4 }).map((_, i) => (
+            <Col key={i} xs={24} sm={12} lg={8} xl={6}>
+              <Card className="farm-card">
+                <Skeleton active paragraph={{ rows: 3 }} />
+              </Card>
+            </Col>
+          ))}
+        </Row>
+      ) : filteredFarms.length === 0 ? (
+        <Empty description="暂无农场数据" className="farms-empty" />
+      ) : (
+        <Row gutter={[20, 20]} className="farms-grid">
+          {filteredFarms.map((farm) => (
+            <Col key={farm.id} xs={24} sm={12} lg={8} xl={6}>
+              <Card
+                hoverable
+                className="farm-card"
+                onClick={() => navigate(`/farms/${farm.id}`)}
+                actions={[
+                  <EditOutlined
+                    key="edit"
+                    onClick={(e) => handleEdit(farm, e)}
+                  />,
+                  <Popconfirm
+                    key="delete"
+                    title="确定删除该农场？"
+                    description="删除后将同时删除所有关联地块，此操作不可撤销。"
+                    onConfirm={() => handleDelete(farm.id)}
+                    okText="删除"
+                    cancelText="取消"
+                    okButtonProps={{ danger: true }}
+                  >
+                    <DeleteOutlined onClick={(e) => e.stopPropagation()} />
+                  </Popconfirm>,
+                ]}
+              >
+                <Card.Meta
+                  title={farm.name}
+                  description={
+                    <div className="farm-card__info">
+                      <p>
+                        <EnvironmentOutlined /> {farm.address || '未设置地址'}
+                      </p>
+                      <p>
+                        <TeamOutlined /> 负责人：{farm.managerName || farm.manager}
+                      </p>
+                      <div className="farm-card__stats">
+                        <span>{farm.plotCount ?? 0} 个地块</span>
+                        <span>{(farm.totalArea ?? 0).toFixed(0)} 亩</span>
                       </div>
-                    }
-                  />
-                </Card>
-              </Col>
-            ))}
-          </Row>
-        )}
-      </Spin>
+                    </div>
+                  }
+                />
+              </Card>
+            </Col>
+          ))}
+        </Row>
+      )}
 
       <Modal
         title={editingFarm ? '编辑农场' : '新建农场'}

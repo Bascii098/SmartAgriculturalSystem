@@ -7,7 +7,6 @@ import {
   Tag,
   Select,
   Empty,
-  Spin,
   Popconfirm,
   message,
   Space,
@@ -184,17 +183,16 @@ function PlanList() {
       </Card>
 
       <Card>
-        <Spin spinning={loading}>
-          <Table
-            columns={columns}
-            dataSource={filteredPlans}
-            rowKey="id"
-            locale={{
-              emptyText: <Empty description="暂无种植计划数据" />,
-            }}
-            pagination={{ pageSize: 10, showTotal: (total) => `共 ${total} 条` }}
-          />
-        </Spin>
+        <Table
+          columns={columns}
+          dataSource={filteredPlans}
+          rowKey="id"
+          loading={loading}
+          locale={{
+            emptyText: <Empty description="暂无种植计划数据" />,
+          }}
+          pagination={{ pageSize: 10, showTotal: (total) => `共 ${total} 条` }}
+        />
       </Card>
     </div>
   )

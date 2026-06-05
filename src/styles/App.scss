@@ -303,13 +303,6 @@
   }
 }
 
-// 信息双栏
-.dashboard-grid {
-  display: grid;
-  grid-template-columns: 3fr 2fr;
-  gap: var(--space-md);
-}
-
 .dashboard-card {
   border-radius: var(--radius-lg);
 
@@ -321,6 +314,10 @@
 
   &__title-icon {
     margin-right: 8px;
+  }
+
+  &--full {
+    margin-top: var(--space-md);
   }
 }
 
@@ -357,47 +354,6 @@
       font-size: 13px;
       color: var(--color-text-secondary);
     }
-  }
-}
-
-// 活动列表
-.activity-item {
-  display: flex;
-  align-items: center;
-  gap: 12px;
-  padding: 12px 0;
-  border-bottom: 1px solid var(--color-border);
-
-  &:last-child {
-    border-bottom: none;
-  }
-
-  &__dot {
-    width: 8px;
-    height: 8px;
-    border-radius: 50%;
-    flex-shrink: 0;
-
-    &--green {
-      background: var(--color-success);
-    }
-    &--blue {
-      background: var(--color-info);
-    }
-    &--gold {
-      background: var(--color-gold);
-    }
-  }
-
-  &__text {
-    flex: 1;
-    font-size: 13px;
-    color: var(--color-text-primary);
-  }
-
-  &__time {
-    font-size: 12px;
-    color: var(--color-text-muted);
   }
 }
 
@@ -953,12 +909,6 @@
   color: var(--color-text-muted);
 }
 
-.dashboard-left-col {
-  display: flex;
-  flex-direction: column;
-  gap: var(--space-md);
-}
-
 // ========================================
 // 响应式
 // ========================================
@@ -968,10 +918,6 @@
   }
 
   .shortcuts-row {
-    grid-template-columns: 1fr;
-  }
-
-  .dashboard-grid {
     grid-template-columns: 1fr;
   }
 }

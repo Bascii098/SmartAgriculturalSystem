@@ -1,6 +1,6 @@
 import { useEffect, useState, useMemo } from 'react'
 import { useNavigate } from 'react-router-dom'
-import { Typography, Skeleton, Alert, Card } from 'antd'
+import { Skeleton, Alert, Card } from 'antd'
 import {
   GlobalOutlined,
   TeamOutlined,
@@ -8,16 +8,14 @@ import {
   ExperimentOutlined,
   RightOutlined,
   RiseOutlined,
-  CloudOutlined,
   WarningOutlined,
   CheckCircleOutlined,
 } from '@ant-design/icons'
 import { useAppSelector } from '@/store/hooks'
-import { getPlotsApi, getWeatherApi, getWeatherWarningsApi, type WeatherData } from '@/services/api'
+import { getPlotsApi, getFarmsApi } from '@/services/api'
+import { fetchWeatherWarnings } from '@/utils/weather'
 import type { PlotFeature } from '@/types/plot'
-import type { DisasterWarning } from '@/types/production'
-
-const { Text } = Typography
+import type { WeatherWarning } from '@/utils/weather'
 
 interface StatItem {
   key: string
@@ -41,16 +39,38 @@ function Dashboard() {
   const isLoggedIn = useAppSelector((state) => state.auth.isLoggedIn)
 
   const [plots, setPlots] = useState<PlotFeature[]>([])
-  const [weather, setWeather] = useState<WeatherData | null>(null)
-  const [warnings, setWarnings] = useState<DisasterWarning[]>([])
+  const [warnings, setWarnings] = useState<WeatherWarning[]>([])
   const [loading, setLoading] = useState(true)
 
   useEffect(() => {
-    Promise.all([
-      getPlotsApi().then(setPlots).catch(() => {}),
-      getWeatherApi().then(setWeather).catch(() => {}),
-      getWeatherWarningsApi().then(setWarnings).catch(() => {}),
-    ]).finally(() => setLoading(false))
+    const loadData = async () => {
+      try {
+        const [plotData, farmData] = await Promise.all([
+          getPlotsApi().catch(() => []),
+          getFarmsApi().catch(() => []),
+        ])
+        setPlots(plotData)
+
+        // 按农场聚合地块坐标，查询天气生成预警
+        const farmMap = new Map<string, { farmId: string; farmName: string; lat: number; lng: number }>()
+        for (const plot of plotData) {
+          if (!farmMap.has(plot.farmId) && plot.center) {
+            const farm = farmData.find((f) => f.id === plot.farmId)
+            farmMap.set(plot.farmId, {
+              farmId: plot.farmId,
+              farmName: farm?.name || plot.farmId,
+              lat: plot.center[0],
+              lng: plot.center[1],
+            })
+          }
+        }
+        const weatherWarnings = await fetchWeatherWarnings(Array.from(farmMap.values()))
+        setWarnings(weatherWarnings)
+      } finally {
+        setLoading(false)
+      }
+    }
+    loadData()
   }, [])
 
   // 统计数据
@@ -132,14 +152,6 @@ function Dashboard() {
     return `${d.getFullYear()}年${d.getMonth() + 1}月${d.getDate()}日 星期${weekDays[d.getDay()]}`
   }, [])
 
-  // 模拟最近动态
-  const activities = [
-    { text: '地块「东区麦田」作物数据已更新', time: '10分钟前', dot: 'stat-card__icon--green' as const },
-    { text: '新种植户「张三」完成信息登记', time: '1小时前', dot: 'stat-card__icon--blue' as const },
-    { text: '交接申请：地块「南区菜地」待确认', time: '3小时前', dot: 'stat-card__icon--gold' as const },
-    { text: '系统完成每日数据备份', time: '5小时前', dot: 'stat-card__icon--green' as const },
-  ]
-
   return (
     <div className="dashboard">
       {/* 欢迎区 */}
@@ -187,101 +199,45 @@ function Dashboard() {
         ))}
       </div>
 
-      {/* 下半部分：天气+预警 + 动态 */}
-      <div className="dashboard-grid">
-        <div className="dashboard-left-col">
-          {/* 实时天气 */}
-          <Card
-            className="dashboard-card"
-            title={
-              <span className="dashboard-card__title">
-                <CloudOutlined className="dashboard-card__title-icon" />
-                实时天气
-              </span>
-            }
-          >
-            {weather ? (
-              <div>
-                <div className="weather-widget">
-                  <span className="weather-widget__icon">
-                    {weather.temperature > 30 ? '☀️' : weather.temperature > 20 ? '🌤' : weather.temperature > 10 ? '⛅' : '🌥'}
-                  </span>
-                  <div>
-                    <div className="weather-widget__temp">{weather.temperature}°C</div>
-                    <Text type="secondary">{weather.condition}</Text>
-                  </div>
-                </div>
-                <div className="weather-widget__detail">
-                  <span>湿度 {weather.humidity}%</span>
-                  <span>风速 {weather.windSpeed}</span>
-                </div>
-              </div>
-            ) : (
-              <Skeleton active paragraph={{ rows: 2 }} />
-            )}
-          </Card>
-
-          {/* 灾害预警 */}
-          <Card
-            className="dashboard-card"
-            title={
-              <span className="dashboard-card__title">
-                <WarningOutlined className="dashboard-card__title-icon" />
-                灾害预警
-              </span>
-            }
-          >
-            {loading ? (
-              <Skeleton active paragraph={{ rows: 2 }} />
-            ) : warnings.length === 0 ? (
-              <div className="warning-empty">
-                <CheckCircleOutlined className="warning-empty__icon" />
-                <span>当前无生效预警</span>
-              </div>
-            ) : (
-              <div className="warning-list">
-                {warnings.map((w) => {
-                  const alertType =
-                    w.warningLevel === '红色' ? 'error' :
-                    w.warningLevel === '橙色' ? 'warning' :
-                    w.warningLevel === '黄色' ? 'warning' : 'info'
-                  return (
-                    <Alert
-                      key={w.id}
-                      type={alertType}
-                      showIcon
-                      message={`${w.warningType}（${w.warningLevel}预警）`}
-                      description={
-                        <div>
-                          <div>{w.description}</div>
-                          <div className="warning-time">
-                            {w.startTime} ~ {w.endTime}
-                          </div>
-                        </div>
-                      }
-                      style={{ marginBottom: 8 }}
-                    />
-                  )
-                })}
-              </div>
-            )}
-          </Card>
-        </div>
-
-        {/* 最近动态 */}
-        <Card
-          className="dashboard-card"
-          title={<span className="dashboard-card__title">最近动态</span>}
-        >
-          {activities.map((item, i) => (
-            <div className="activity-item" key={i}>
-              <span className={`activity-item__dot ${item.dot}`} />
-              <span className="activity-item__text">{item.text}</span>
-              <span className="activity-item__time">{item.time}</span>
-            </div>
-          ))}
-        </Card>
-      </div>
+      {/* 灾害预警 */}
+      <Card
+        className="dashboard-card dashboard-card--full"
+        title={
+          <span className="dashboard-card__title">
+            <WarningOutlined className="dashboard-card__title-icon" />
+            灾害预警
+          </span>
+        }
+      >
+        {loading ? (
+          <Skeleton active paragraph={{ rows: 3 }} />
+        ) : warnings.length === 0 ? (
+          <div className="warning-empty">
+            <CheckCircleOutlined className="warning-empty__icon" />
+            <span>当前无生效预警</span>
+          </div>
+        ) : (
+          <div className="warning-list">
+            {warnings.map((w) => {
+              const alertType =
+                w.warningLevel === '红色' ? 'error' :
+                w.warningLevel === '橙色' ? 'warning' :
+                w.warningLevel === '黄色' ? 'warning' : 'info'
+              return (
+                <Alert
+                  key={w.id}
+                  type={alertType}
+                  showIcon
+                  message={`${w.warningType}（${w.warningLevel}预警）— ${w.farmName}`}
+                  description={w.description}
+                  style={{ marginBottom: 8, cursor: 'pointer' }}
+                  onClick={() => navigate(`/farms/${w.farmId}`)}
+                />
+              )
+            })}
+          </div>
+        )}
+      </Card>
     </div>
   )
 }
