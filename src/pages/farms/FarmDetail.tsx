@@ -1,4 +1,4 @@
-import { useEffect, useRef, useState, useCallback } from 'react'
+import { useEffect, useRef, useState, useCallback, useMemo } from 'react'
 import { useParams, useNavigate } from 'react-router-dom'
 import {
   Button,
@@ -35,6 +35,7 @@ import {
 } from '@ant-design/icons'
 import { weatherMap, fetchPlotWeather } from '@/utils/weather'
 import type { PlotWeather } from '@/utils/weather'
+import { isSelfIntersectingPolygon, polygonsOverlap } from '@/utils/geometry'
 import { MapContainer, TileLayer, Polygon, Popup, useMap } from 'react-leaflet'
 import L from 'leaflet'
 import 'leaflet/dist/leaflet.css'
@@ -72,8 +73,16 @@ const PLOT_COLORS = [
 
 function getNextColor(existingColors: (string | undefined)[]): string {
   const used = new Set(existingColors.filter(Boolean))
-  return PLOT_COLORS.find((c) => !used.has(c)) || PLOT_COLORS[0]
+  const availableColors = PLOT_COLORS.filter((c) => !used.has(c))
+
+  if (availableColors.length > 0) {
+    return availableColors[0]
+  }
+
+  // 如果所有颜色都已使用，循环使用第一个颜色
+  return PLOT_COLORS[existingColors.length % PLOT_COLORS.length]
 }
+
 
 function getPolygonCenter(coords: [number, number][]): [number, number] {
   if (coords.length === 0) return [0, 0]
@@ -87,13 +96,20 @@ function MapController({
   onMapReady,
   drawnCoords,
   onCoordsChange,
+  onLiveCoords,
   enableDraw,
 }: {
-  onMapReady: (map: L.Map) => void
-  drawnCoords: [number, number][]
-  onCoordsChange: (coords: [number, number][]) => void
-  enableDraw: boolean
-}) {
+    /** 地图实例初始化完成后的回调，用于保存 Leaflet 地图引用 */
+    onMapReady: (map: L.Map) => void
+    /** 当前正在绘制或编辑的地块边界坐标 */
+    drawnCoords: [number, number][]
+    /** 绘制或编辑完成后，将最新坐标同步到表单状态 */
+    onCoordsChange: (coords: [number, number][]) => void
+    /** 绘制或编辑过程中，将实时坐标同步给重叠检测逻辑 */
+    onLiveCoords: (coords: [number, number][]) => void
+    /** 是否启用 Leaflet Draw 绘图和编辑工具 */
+    enableDraw: boolean
+  }) {
   const map = useMap()
   const drawControlRef = useRef<L.Control.Draw | null>(null)
   const drawnItemsRef = useRef<L.FeatureGroup>(new L.FeatureGroup())
@@ -127,6 +143,9 @@ function MapController({
       },
       edit: {
         featureGroup: drawnItemsRef.current,
+        poly: {
+          allowIntersection: false,
+        },
       },
     })
     map.addControl(drawControl)
@@ -138,6 +157,7 @@ function MapController({
       drawnItemsRef.current.addLayer(layer)
       const latlngs = layer.getLatLngs()[0] as L.LatLng[]
       const coords: [number, number][] = latlngs.map((ll) => [ll.lat, ll.lng])
+      onLiveCoords(coords)
       onCoordsChange(coords)
     }
 
@@ -150,17 +170,40 @@ function MapController({
           latlngs.forEach((ll) => coords.push([ll.lat, ll.lng]))
         }
       })
+      onLiveCoords(coords)
       onCoordsChange(coords)
+      if (isSelfIntersectingPolygon(coords)) {
+        message.warning('地块边界存在自相交，请调整顶点位置')
+      }
     }
 
     // 删除完成
     const handleDeleted = () => {
+      onLiveCoords([])
       onCoordsChange([])
+    }
+
+    // 绘制中每加一个顶点，实时同步坐标用于重叠检测（e.layers = 已画顶点 marker 组）
+    const handleDrawVertex = (e: L.LeafletEvent) => {
+      const payload = e as unknown as { layers: L.LayerGroup }
+      const latlngs: L.LatLng[] = []
+      payload.layers.eachLayer((m) => {
+        latlngs.push((m as L.Marker).getLatLng())
+      })
+      onLiveCoords(latlngs.map((ll) => [ll.lat, ll.lng] as [number, number]))
+    }
+    // 编辑中拖动顶点，实时同步坐标用于重叠检测（e.poly 是完整多边形）
+    const handleEditVertex = (e: L.LeafletEvent) => {
+      const payload = e as unknown as { poly: L.Polygon }
+      const latlngs = payload.poly.getLatLngs()[0] as L.LatLng[]
+      onLiveCoords(latlngs.map((ll) => [ll.lat, ll.lng] as [number, number]))
     }
 
     map.on(L.Draw.Event.CREATED, handleCreated)
     map.on(L.Draw.Event.EDITED, handleEdited)
     map.on(L.Draw.Event.DELETED, handleDeleted)
+    map.on(L.Draw.Event.DRAWVERTEX, handleDrawVertex)
+    map.on(L.Draw.Event.EDITVERTEX, handleEditVertex)
 
     return () => {
       map.removeControl(drawControl)
@@ -168,8 +211,10 @@ function MapController({
       map.off(L.Draw.Event.CREATED, handleCreated)
       map.off(L.Draw.Event.EDITED, handleEdited)
       map.off(L.Draw.Event.DELETED, handleDeleted)
+      map.off(L.Draw.Event.DRAWVERTEX, handleDrawVertex)
+      map.off(L.Draw.Event.EDITVERTEX, handleEditVertex)
     }
-  }, [map, enableDraw, onCoordsChange])
+  }, [map, enableDraw, onCoordsChange, onLiveCoords])
 
   // 编辑时在地图上显示已有边界并飞到该位置
   useEffect(() => {
@@ -189,6 +234,39 @@ function MapController({
   return null
 }
 
+function OtherPlotOverlays({
+  plots,
+  editingPlotId,
+  overlapIds,
+}: {
+  plots: PlotFeature[]
+  editingPlotId?: string
+  overlapIds: string[]
+}) {
+  return (
+    <>
+      {plots
+        .filter((p) => p.id !== editingPlotId && p.coordinates.length >= 3)
+        .map((p) => {
+          const conflicted = overlapIds.includes(p.id)
+          return (
+            <Polygon
+              key={p.id}
+              positions={p.coordinates}
+              pathOptions={{
+                color: conflicted ? '#ff4d4f' : (p.color || '#4caf50'),
+                fillColor: conflicted ? '#ff4d4f' : (p.color || '#4caf50'),
+                fillOpacity: 0.2,
+                weight: conflicted ? 3 : 1,
+              }}
+              interactive={false}
+            />
+          )
+        })}
+    </>
+  )
+}
+
 const PAGE_SIZE = 7
 
 function FarmDetail() {
@@ -204,9 +282,20 @@ function FarmDetail() {
   const [mapExpanded, setMapExpanded] = useState(false)
   const [saving, setSaving] = useState(false)
   const [page, setPage] = useState(1)
+  const [overlapCoords, setOverlapCoords] = useState<[number, number][]>([])
   const [plotWeather, setPlotWeather] = useState<PlotWeather | null>(null)
   const [weatherLoading, setWeatherLoading] = useState(false)
   const pagedPlots = plots.slice((page - 1) * PAGE_SIZE, page * PAGE_SIZE)
+
+  // 与当前绘制/编辑中地块重叠的其他地块（编辑时排除自身）
+  const overlapPlotIds = useMemo(() => {
+    if (overlapCoords.length < 3) return [] as string[]
+    return plots
+      .filter(
+        (p) => !(editingPlot && p.id === editingPlot.id) && polygonsOverlap(overlapCoords, p.coordinates),
+      )
+      .map((p) => p.id)
+  }, [overlapCoords, plots, editingPlot])
   const [form] = Form.useForm<PlotFormValues>()
 
   const mapRef = useRef<L.Map | null>(null)
@@ -253,6 +342,7 @@ function FarmDetail() {
   const handleCreatePlot = () => {
     setEditingPlot(null)
     setDrawnCoords([])
+    setOverlapCoords([])
     form.resetFields()
     setDrawerOpen(true)
   }
@@ -260,6 +350,7 @@ function FarmDetail() {
   const handleEditPlot = (plot: PlotFeature) => {
     setEditingPlot(plot)
     setDrawnCoords(plot.coordinates || [])
+    setOverlapCoords(plot.coordinates || [])
     form.setFieldsValue({
       name: plot.name,
       soilType: plot.soilType,
@@ -291,6 +382,17 @@ function FarmDetail() {
   const handleDrawerSubmit = async () => {
     if (drawnCoords.length === 0) {
       message.warning('请在地图上绘制地块边界')
+      return
+    }
+    if (isSelfIntersectingPolygon(drawnCoords)) {
+      message.warning('地块边界不能自相交，请重新绘制')
+      return
+    }
+    const clash = plots.filter(
+      (p) => p.id !== editingPlot?.id && p.coordinates.length >= 3 && polygonsOverlap(drawnCoords, p.coordinates),
+    )
+    if (clash.length) {
+      message.warning(`地块边界与「${clash.map((p) => p.name).join('、')}」面积重叠，请调整边界`)
       return
     }
     const values = await form.validateFields()
@@ -491,6 +593,7 @@ function FarmDetail() {
                   onMapReady={handleMapReady}
                   drawnCoords={[]}
                   onCoordsChange={() => {}}
+                  onLiveCoords={() => {}}
                   enableDraw={false}
                 />
                 <TileLayer
@@ -504,9 +607,9 @@ function FarmDetail() {
                       key={plot.id}
                       positions={plot.coordinates}
                       pathOptions={{
-                        color: plot.color || '#4caf50',
+                        color: overlapPlotIds.includes(plot.id) ? '#ff4d4f' : (plot.color || '#4caf50'),
                         fillOpacity: selectedPlotId === plot.id ? 0.5 : 0.2,
-                        weight: selectedPlotId === plot.id ? 4 : 2,
+                        weight: overlapPlotIds.includes(plot.id) ? 4 : (selectedPlotId === plot.id ? 4 : 2),
                       }}
                       eventHandlers={{
                         click: () => handleFlyToPlot(plot),
@@ -536,7 +639,7 @@ function FarmDetail() {
       <Drawer
         title={editingPlot ? '编辑地块' : '新建地块'}
         open={drawerOpen}
-        onClose={() => setDrawerOpen(false)}
+        onClose={() => { setDrawerOpen(false); setOverlapCoords([]) }}
         width={720}
         extra={
           <Button type="primary" loading={saving} onClick={handleDrawerSubmit}>
@@ -622,12 +725,18 @@ function FarmDetail() {
                             onMapReady={() => {}}
                             drawnCoords={drawnCoords}
                             onCoordsChange={handleCoordsChange}
+                            onLiveCoords={setOverlapCoords}
                             enableDraw
                           />
                           <TileLayer
                             url="https://webst0{s}.is.autonavi.com/appmaptile?style=6&x={x}&y={y}&z={z}"
                             subdomains={['1', '2', '3', '4']}
                             maxZoom={18}
+                          />
+                          <OtherPlotOverlays
+                            plots={plots}
+                            editingPlotId={editingPlot?.id}
+                            overlapIds={overlapPlotIds}
                           />
                         </MapContainer>
                       </div>
@@ -771,12 +880,18 @@ function FarmDetail() {
               onMapReady={() => {}}
               drawnCoords={drawnCoords}
               onCoordsChange={handleCoordsChange}
+              onLiveCoords={setOverlapCoords}
               enableDraw
             />
             <TileLayer
               url="https://webst0{s}.is.autonavi.com/appmaptile?style=6&x={x}&y={y}&z={z}"
               subdomains={['1', '2', '3', '4']}
               maxZoom={18}
+            />
+            <OtherPlotOverlays
+              plots={plots}
+              editingPlotId={editingPlot?.id}
+              overlapIds={overlapPlotIds}
             />
           </MapContainer>
           <Button

@@ -37,6 +37,7 @@ declare module 'leaflet' {
     }
     edit?: {
       featureGroup: FeatureGroup
+      poly?: { allowIntersection?: boolean }
       edit?: object
       remove?: object
     }

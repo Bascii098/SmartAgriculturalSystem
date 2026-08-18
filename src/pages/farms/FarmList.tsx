@@ -41,17 +41,18 @@ function FarmList() {
 
   useEffect(() => {
     dispatch(fetchFarms())
+
+    const loadManagers = async () => {
+      try {
+        const growers = await getGrowersApi()
+        setManagerOptions(growers.map((g: { username: string }) => ({ label: g.username, value: g.username })))
+      } catch {
+        setManagerOptions([{ label: 'admin', value: 'admin' }])
+      }
+    }
+
     loadManagers()
   }, [dispatch])
-
-  const loadManagers = async () => {
-    try {
-      const growers = await getGrowersApi()
-      setManagerOptions(growers.map((g: { username: string }) => ({ label: g.username, value: g.username })))
-    } catch {
-      setManagerOptions([{ label: 'admin', value: 'admin' }])
-    }
-  }
 
   const filteredFarms = farms.filter((f) =>
     f.name.toLowerCase().includes(searchText.toLowerCase()),

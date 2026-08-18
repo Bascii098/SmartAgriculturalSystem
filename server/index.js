@@ -588,17 +588,11 @@ app.post('/api/plans', authMiddleware, async (req, res) => {
     const cropCodeMap = { '玉米': 'YM', '大豆': 'DD', '水稻': 'SD', '小麦': 'XM' }
     const cropCode = cropCodeMap[cropType] || 'QT'
 
-    // 查询当前作物最大序号
+    // 查询全局最大序号，保证 plan_no 唯一（不同作物映射同一代码时也不会冲突）
     const [maxRows] = await pool.query(
-      "SELECT plan_no FROM planting_plans WHERE crop_type = ? ORDER BY id DESC LIMIT 1",
-      [cropType]
+      "SELECT MAX(CAST(SUBSTRING_INDEX(plan_no, '-', -1) AS UNSIGNED)) AS maxSeq FROM planting_plans"
     )
-    let seq = 1
-    if (maxRows.length > 0) {
-      const lastNo = maxRows[0].plan_no
-      const match = lastNo.match(/(\d{4})$/)
-      if (match) seq = parseInt(match[1], 10) + 1
-    }
+    const seq = (maxRows[0].maxSeq || 0) + 1
     const planNo = `ZZ-${cropCode}-${String(seq).padStart(4, '0')}`
 
     // 插入种植计划

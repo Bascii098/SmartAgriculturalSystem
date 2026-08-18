@@ -88,6 +88,21 @@ const LEVEL_MAP: Record<string, '蓝色' | '黄色' | '橙色' | '红色'> = {
   Red: '红色',
 }
 
+/** 和风天气预警响应（warning 单项） */
+interface QWeatherWarningItem {
+  id: string
+  status: string
+  level: string
+  typeName?: string
+  text?: string
+  title?: string
+}
+
+interface QWeatherWarningResponse {
+  code: string
+  warning?: QWeatherWarningItem[]
+}
+
 /** 为单个农场获取和风天气预警 */
 async function fetchWarningsForFarm(farm: FarmWeatherInfo): Promise<WeatherWarning[]> {
   try {
@@ -95,12 +110,12 @@ async function fetchWarningsForFarm(farm: FarmWeatherInfo): Promise<WeatherWarni
     const res = await fetch(
       `https://${QWEATHER_HOST}/v7/warning/now?location=${location}&key=${QWEATHER_KEY}`,
     )
-    const data = await res.json()
+    const data = (await res.json()) as QWeatherWarningResponse
     if (data.code !== '200' || !data.warning) return []
 
     return data.warning
-      .filter((w: any) => w.status === 'active')
-      .map((w: any) => ({
+      .filter((w) => w.status === 'active')
+      .map((w) => ({
         id: `${farm.farmId}-${w.id}`,
         warningType: w.typeName || '气象预警',
         warningLevel: LEVEL_MAP[w.level] || '黄色',

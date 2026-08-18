@@ -44,16 +44,9 @@ function HeaderInfo() {
   }, [])
 
   useEffect(() => {
-    fetch('https://ipapi.co/json/')
-      .then((res) => res.json())
-      .then(({ latitude, longitude }) => {
-        if (latitude && longitude) {
-          return fetch(
-            `https://api.open-meteo.com/v1/forecast?latitude=${latitude}&longitude=${longitude}&current=temperature_2m,weather_code`,
-          )
-        }
-        throw new Error('No location')
-      })
+    fetch(
+      'https://api.open-meteo.com/v1/forecast?latitude=39.9&longitude=116.4&current=temperature_2m,weather_code',
+    )
       .then((res) => res.json())
       .then((data) => {
         if (data.current) {
@@ -63,21 +56,7 @@ function HeaderInfo() {
           })
         }
       })
-      .catch(() => {
-        fetch(
-          'https://api.open-meteo.com/v1/forecast?latitude=39.9&longitude=116.4&current=temperature_2m,weather_code',
-        )
-          .then((res) => res.json())
-          .then((data) => {
-            if (data.current) {
-              setWeather({
-                temp: data.current.temperature_2m,
-                code: data.current.weather_code,
-              })
-            }
-          })
-          .catch(() => null)
-      })
+      .catch(() => null)
   }, [])
 
   return (

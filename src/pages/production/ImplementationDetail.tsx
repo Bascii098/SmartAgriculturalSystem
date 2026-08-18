@@ -23,26 +23,11 @@ import {
   getFarmApi,
   submitImplementationApi,
 } from '@/services/api'
-import type { PlanTask } from '@/types/production'
+import type {
+  ImplementationFarmItem as UnimplementedItem,
+  ImplementationFarmItemImplemented as ImplementedItem,
+} from '@/types/production'
 import { STATUS_COLOR } from '@/types/production'
-
-interface UnimplementedItem {
-  planTask: PlanTask
-  plan: { planNo: string; cropType: string }
-  plot: { id: number; name: string }
-}
-
-interface ImplementedItem extends UnimplementedItem {
-  implementation: {
-    id: number
-    implementDate: string
-    method: string
-    seedUsed: string
-    inputAmount: string
-    equipment: string
-    remark: string
-  }
-}
 
 function ImplementationDetail() {
   const { farmId } = useParams<{ farmId: string }>()

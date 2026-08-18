@@ -1,4 +1,6 @@
 import { useEffect, useState, useCallback } from 'react'
+import dayjs from 'dayjs'
+import type { Dayjs } from 'dayjs'
 import { useParams, useNavigate } from 'react-router-dom'
 import {
   Card,
@@ -75,11 +77,13 @@ function TaskDetail() {
       const fields = await getTaskConfigByStageApi(task.stage)
       setConfigFields(fields)
       // 用已有 configData 填充表单
-      const initialValues: Record<string, any> = {}
+      const initialValues: Record<string, unknown> = {}
       if (task.configData) {
         fields.forEach((field) => {
           if (task.configData && task.configData[field.fieldKey] !== undefined) {
-            initialValues[field.fieldKey] = task.configData[field.fieldKey]
+            const raw = task.configData[field.fieldKey]
+            initialValues[field.fieldKey] =
+              field.fieldType === 'date' && raw ? dayjs(raw as string) : raw
           }
         })
       }
@@ -98,7 +102,13 @@ function TaskDetail() {
     try {
       const values = await configForm.validateFields()
       setSubmitting(true)
-      await updatePlanTaskApi(task.id, { configData: values })
+      const configData: Record<string, unknown> = { ...values }
+      configFields.forEach((field) => {
+        if (field.fieldType === 'date' && configData[field.fieldKey]) {
+          configData[field.fieldKey] = (configData[field.fieldKey] as Dayjs).format('YYYY-MM-DD')
+        }
+      })
+      await updatePlanTaskApi(task.id, { configData })
       message.success('配置保存成功')
       setConfigModalVisible(false)
       // 刷新任务数据
@@ -146,7 +156,7 @@ function TaskDetail() {
   }
 
   // 渲染 configData
-  const renderConfigData = (configData: Record<string, any> | null) => {
+  const renderConfigData = (configData: Record<string, unknown> | null) => {
     if (!configData || Object.keys(configData).length === 0) {
       return <Empty description="暂未配置" image={Empty.PRESENTED_IMAGE_SIMPLE} />
     }

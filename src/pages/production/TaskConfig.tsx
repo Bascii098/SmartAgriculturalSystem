@@ -1,4 +1,4 @@
-import { useEffect, useState, useCallback } from 'react'
+import { useEffect, useState } from 'react'
 import { useNavigate } from 'react-router-dom'
 import {
   Tabs,
@@ -46,6 +46,54 @@ const fieldTypeMap: Record<string, string> = {
 
 let tempIdCounter = 0
 
+function OptionsEditor({
+  value,
+  onChange,
+}: {
+  value?: string[]
+  onChange?: (value: string[]) => void
+}) {
+  const [input, setInput] = useState('')
+  const list = value || []
+
+  const addOption = () => {
+    const trimmed = input.trim()
+    if (trimmed && !list.includes(trimmed)) {
+      onChange?.([...list, trimmed])
+      setInput('')
+    }
+  }
+
+  return (
+    <div>
+      <Space.Compact style={{ width: '100%' }}>
+        <Input
+          value={input}
+          onChange={(e) => setInput(e.target.value)}
+          onPressEnter={addOption}
+          placeholder="输入选项后点击加号添加"
+        />
+        <Button icon={<PlusOutlined />} onClick={addOption} />
+      </Space.Compact>
+      {list.length > 0 && (
+        <div style={{ marginTop: 8 }}>
+          <Space wrap>
+            {list.map((opt) => (
+              <Tag
+                key={opt}
+                closable
+                onClose={() => onChange?.(list.filter((o) => o !== opt))}
+              >
+                {opt}
+              </Tag>
+            ))}
+          </Space>
+        </div>
+      )}
+    </div>
+  )
+}
+
 function TaskConfig() {
   const navigate = useNavigate()
   const [loading, setLoading] = useState(true)
@@ -92,7 +140,7 @@ function TaskConfig() {
       fieldKey: record.fieldKey,
       fieldLabel: record.fieldLabel,
       fieldType: record.fieldType,
-      options: record.options?.join(','),
+      options: record.options || [],
       required: record.required,
       sortOrder: record.sortOrder,
     })
@@ -113,8 +161,8 @@ function TaskConfig() {
         fieldKey: values.fieldKey,
         fieldLabel: values.fieldLabel,
         fieldType: values.fieldType,
-        options: values.fieldType === 'select' && values.options
-          ? values.options.split(',').map((s: string) => s.trim()).filter(Boolean)
+        options: values.fieldType === 'select' && values.options?.length
+          ? values.options
           : null,
         required: values.required ?? false,
         sortOrder: values.sortOrder ?? 0,
@@ -306,10 +354,17 @@ function TaskConfig() {
           {showSelectOptions && (
             <Form.Item
               name="options"
-              label="选项（逗号分隔）"
-              rules={[{ required: true, message: '请输入选项' }]}
+              label="选项"
+              rules={[
+                {
+                  validator: (_, value) =>
+                    Array.isArray(value) && value.length > 0
+                      ? Promise.resolve()
+                      : Promise.reject(new Error('请至少添加一个选项')),
+                },
+              ]}
             >
-              <Input placeholder="选项1,选项2,选项3" />
+              <OptionsEditor />
             </Form.Item>
           )}
           <Form.Item name="required" label="是否必填" valuePropName="checked">

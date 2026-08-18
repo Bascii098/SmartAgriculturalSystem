@@ -228,7 +228,7 @@ function Dashboard() {
                   key={w.id}
                   type={alertType}
                   showIcon
-                  message={`${w.warningType}（${w.warningLevel}预警）— ${w.farmName}`}
+                  title={`${w.warningType}（${w.warningLevel}预警）— ${w.farmName}`}
                   description={w.description}
                   style={{ marginBottom: 8, cursor: 'pointer' }}
                   onClick={() => navigate(`/farms/${w.farmId}`)}

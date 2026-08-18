@@ -38,7 +38,6 @@ function PlanCreate() {
   const [submitting, setSubmitting] = useState(false)
   const [selectedPlotIds, setSelectedPlotIds] = useState<string[]>([])
   const [cropConfigs, setCropConfigs] = useState<Record<string, CropConfig>>({})
-  const [cropForms] = useState<Record<string, { cropType: string; seedVariety: string; area: number }>>({})
 
   useEffect(() => {
     loadData()
@@ -271,7 +270,7 @@ function PlanCreate() {
         {current === 2 && (
           <Card title="确认种植计划信息">
             <Alert
-              message="请核对以下信息，确认无误后点击「生成计划」"
+              title="请核对以下信息，确认无误后点击「生成计划」"
               type="info"
               showIcon
               style={{ marginBottom: 16 }}

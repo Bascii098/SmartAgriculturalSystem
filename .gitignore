@@ -33,3 +33,4 @@ server/mysql-data/
 server/my.ini
 
 docs/
+frontend-guide.md

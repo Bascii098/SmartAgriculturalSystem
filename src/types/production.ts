@@ -41,7 +41,7 @@ export interface PlanTask {
   id: number
   planId: number
   stage: FarmStage
-  configData: Record<string, any> | null
+  configData: Record<string, unknown> | null
   plannedDate: string | null
   status: TaskStatus
   createdAt: string
@@ -67,7 +67,7 @@ export interface ImplementationRecord {
   inputAmount: string
   equipment: string
   remark: string
-  geoMarker: any | null
+  geoMarker: unknown | null
   createdAt: string
 }
 
@@ -134,4 +134,15 @@ export const STATUS_COLOR: Record<string, string> = {
   '进行中': 'orange',
   '已完成': 'green',
   '已逾期': 'red',
+}
+
+// 实施记录列表项（按农场分组详情）
+export interface ImplementationFarmItem {
+  planTask: PlanTask
+  plan: { planNo: string; cropType: string }
+  plot: { id: string; name: string }
+}
+
+export interface ImplementationFarmItemImplemented extends ImplementationFarmItem {
+  implementation: ImplementationRecord
 }
